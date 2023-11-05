@@ -32,6 +32,18 @@ components:
       schema:
         type: string
       required: true
+    photoId:
+      name: photoId
+      in: path
+      schema:
+        type: string
+      required: true
+    commentId:
+      name: commentId
+      in: path
+      schema:
+        type: string
+      required: true
 
   schemas:
     username:
@@ -89,6 +101,15 @@ components:
         followingCounter:
           type: integer
           example: "12"
+    comment:
+      type: object
+      properties:
+        time:
+          type: string
+          example: "DD/MM/YY-HH:MM:SS"
+        uid_owner:
+          type: string
+          example: "abcdef012345"
   
   responses:
     ServerDown:
@@ -203,36 +224,6 @@ paths:
         '500':
           $ref: "#/components/responses/ServerDown"
   
-  /user/{uid}/photo:
-    # uploadPhoto
-    post:
-      tags: ["User", "Photo"]
-      operationId: uploadPhoto
-      parameters:
-        - $ref: "#/components/parameters/uid"
-      summary: "Upload a photo"
-      requestBody:
-        content:
-          image/png:
-            schema:
-              $ref: "#/components/schemas/photo"
-        required: true
-      responses:
-        '201':
-          description: A photo has been uploaded succesfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "Photo uploaded"
-        '400':
-          $ref : "#/components/responses/BadRequest"
-        '500':
-          $ref: "#/components/responses/ServerDown"
-  
   /user/{uid}/following:
     # followUser
     put:
@@ -262,14 +253,56 @@ paths:
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+    # getFollowingId
+    get:
+      summary: Get following users ids
+      tags: ["User"]
+      operationId: getFollowingId
+      parameters:
+        - $ref: "#/components/parameters/uid"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/identifier"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '500':
+          $ref: "#/components/responses/ServerDown"
           
-  /user/{uid}/following/followedUid:
+  /user/{uid}/following/stream:
+    #getMyStream
+    get:
+      summary: Get user stream
+      tags: ["Photo"]
+      operationId: getMyStream
+      parameters:
+        - $ref: "#/components/parameters/uid"
+      responses:
+        '200':
+          description: Return stream of photo from following
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/photo"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '500':
+          $ref: "#/components/responses/ServerDown"
+                
+  /user/{uid}/following/{followedUid}:
     # unfollowUser
     delete:
       tags: ["User"]
       parameters:
         - $ref: "#/components/parameters/uid"
-        # - $ref: "#/components/parameters/followedUid"
+        - $ref: "#/components/parameters/followedUid"
       summary: "Unfollow a user"
       operationId: unfollowUser
       responses:
@@ -391,6 +424,132 @@ paths:
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
-  
-  
-  
+          
+  /photo:
+    # uploadPhoto
+    post:
+      tags: ["User", "Photo"]
+      operationId: uploadPhoto
+      summary: "Upload a photo"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/photo"
+        required: true
+      responses:
+        '201':
+          description: A photo has been uploaded succesfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Photo uploaded"
+        '400':
+          $ref : "#/components/responses/BadRequest"
+        '500':
+          $ref: "#/components/responses/ServerDown"
+          
+  /photo/{photoId}/likes:
+    # likePhoto
+    put:
+      summary: Put like to a photo
+      tags: ["Photo", "User"]
+      operationId: likePhoto
+      parameters:
+        - $ref: "#/components/parameters/photoId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/identifier"
+        required: true
+      responses:
+        '200':
+          $ref: "#/components/responses/Success"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '500':
+          $ref: "#/components/responses/ServerDown"
+          
+  /photo/{photoId}/likes/{uid}:
+    # unlikePhoto
+    delete:
+      summary: Unlike a photo
+      tags: ["Photo", "User"]
+      operationId: unlikePhoto
+      parameters:
+        - $ref: "#/components/parameters/photoId"
+        - $ref: "#/components/parameters/uid"
+      responses:
+        '200':
+          $ref: "#/components/responses/DeleteSuccess"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '500':
+          $ref: "#/components/responses/ServerDown"
+      
+  /photo/{photoId}/comment:
+    #commentPhoto
+    post:
+      summary: Add comment to a photo
+      operationId: commentPhoto
+      parameters:
+        - $ref: "#/components/parameters/photoId"
+      tags: ["Photo", "User"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/comment"
+      responses:
+        '201':
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Success"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '500':
+          $ref: "#/components/responses/ServerDown"
+          
+  /photo/{photoId}/comment/{commentId}:
+    # uncommentPhoto
+    delete:
+      summary: Delete a comment
+      operationId: uncommentPhoto
+      tags: ["User", "Photo"]
+      parameters:
+        - $ref: "#/components/parameters/photoId"
+        - $ref: "#/components/parameters/commentId"
+      responses:
+        '200':
+          $ref: "#/components/responses/Success"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '500':
+          $ref: "#/components/responses/ServerDown"
+          
+  /photo/{photoId}:
+    # deletePhoto
+    delete:
+      summary: Delete photo
+      parameters:
+        - $ref: "#/components/parameters/photoId"
+      tags: ["User", "Photo"]
+      operationId: deletePhoto
+      responses:
+        '200':
+          $ref: "#/components/responses/Success"
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '500':
+          $ref: "#/components/responses/ServerDown"
