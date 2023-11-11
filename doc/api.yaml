@@ -4,112 +4,219 @@ info:
   description: |
     Share the moments you love with people you love!
   version: 1.0.0
+
+security:
+  - bearerAuth: []
+  
+tags:
+  - name: Login
+  - name: User
+  - name: Photo
   
 components:
-  
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
   parameters:
     uid:
       name: uid
+      description: User identifier given by server at the moment of the sign up
       in: path
       schema:
         type: string
+        description: User id parameter
+        example: "abcdef012345abcdef012345abcdef01"
+        pattern: '^(?!photo)\w'
+        minLength: 32
+        maxLength: 32
       required: true
-    followedUid:
-      name: followedUid
+    following_uid:
+      name: following_uid
+      description: User identifier of the followed user
       in: path
       schema:
         type: string
+        description: User id parameter
+        example: "abcdef012345abcdef012345abcdef01"
+        pattern: '^(?!photo)\w'
+        minLength: 32
+        maxLength: 32
       required: true
-    followerUid:
-      name: followerUid
+    follower_uid:
+      name: follower_uid
       in: path
+      description: User identifier of a follower
       schema:
         type: string
+        description: User id parameter
+        example: "abcdef012345abcdef012345abcdef01"
+        pattern: '^(?!photo)\w'
+        minLength: 32
+        maxLength: 32
       required: true
-    bannedUid:
-      name: bannedUid
+    banned_uid:
+      name: banned_uid
       in: path
+      description: User identifier of the banned user
       schema:
         type: string
+        description: User id parameter
+        example: "abcdef012345abcdef012345abcdef01"
+        pattern: '^(?!photo)\w'
+        minLength: 32
+        maxLength: 32
       required: true
-    photoId:
-      name: photoId
+    photo_id:
+      name: photo_id
       in: path
+      description: Photo id
       schema:
         type: string
+        description: Photo id parameter
+        pattern: '^photo\w'
+        minLength: 32
+        maxLength: 32
       required: true
-    commentId:
-      name: commentId
+    comment_id:
+      name: comment_id
+      description: Comment id
       in: path
       schema:
         type: string
+        description: Comment id parameter
+        pattern: '^comment\w'
+        minLength: 32
+        maxLength: 32
       required: true
 
   schemas:
     username:
       type: object
+      description: Current username linked to User Id
       properties:
         name:
           type: string
-          example: Maria
-          pattern: 'ˆ.*?$'
+          description: Current name
+          example: 'Maria'
+          pattern: '[A-Za-z0-9]'
           minLength: 3
           maxLength: 16
     photo:
-      type: string
-      format: binary
+      type: object
+      description: Photo Object
+      properties:
+        url:
+          type: string
+          description: Photo url
+          pattern: |-
+            ^data:image\/(?:gif|png|jpeg|bmp|webp)(?:;charset=utf-8)?;base64,(?:[A-Za-z0-9]|[+/])+={0,2}$
+          minLength: 0
+          maxLength: 1000
+        id:
+          type: string
+          description: Photo id
+          pattern: '^photo\w'
+          minLength: 32
+          maxLength: 32
+        name:
+          type: string
+          description: Name of the photo given by the user
+          example: "MyFirstPhoto"
+          pattern: '[a-zA-Z0-9]'
+          minLength: 0
+          maxLength: 100
+        upload_date:
+          type: string
+          description: Upload date
+          format: date-time
+          pattern: '(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})'
+          example: "2017-07-21 17:32:28"
+          minLength: 19
+          maxLength: 19
+        owner:
+          $ref: "#/components/schemas/identifier/properties/identifier"
+        likes_counter:
+          type: integer
+          description: Current like counter
+          example: 12
+    identifier:
+      type: object
+      description: Server links a unique identifier for newly registered account
+      properties:
+        identifier:
+          type: string
+          description: Identifier
+          example: "abcdef012345abcdef012345abcdef01"
+          pattern: '[A-Za-z0-9]'
+          minLength: 32
+          maxLength: 32
+    profile:
+      type: object
+      description: User profile infos
+      properties:
+        identifier:
+            $ref: "#/components/schemas/identifier"
+        photos:
+          type: array
+          description: Array of photos
+          items:
+            $ref: "#/components/schemas/photo"
+          minItems: 0
+          maxItems: 50
+        photo_counter:
+          type: integer
+          description: Photo counter
+          example: 12
+        followers:
+          type: array
+          description: Array of followers ids
+          items:
+            $ref: "#/components/schemas/identifier"
+          minItems: 0
+          maxItems: 50
+        following:
+          type: array
+          description: Array of following ids
+          items:
+            $ref: "#/components/schemas/identifier"
+          minItems: 0
+          maxItems: 50
+        followers_counter:
+          type: integer
+          description: Followers counter
+          example: 12
+        following_counter:
+          type: integer
+          description: Following counter
+          example: 12
+    comment:
+      type: object
+      description: Comment Object
       properties:
         id:
           type: string
-          example: "abcdef012345"
-        name:
+          description: Comment id
+          pattern: '^comment\w'
+          minLength: 32
+          maxLength: 32
+        upload_time:
           type: string
-          example: "MyFirstPhoto"
-        uploadDate:
-          type: string
-          example: "DD/MM/YYYY"
-        owner:
-          type: string
-          example: "Maria"
-        likesCounter:
-          type: integer
-          example: "12"
-    identifier:
-      type: string
-      example: "abcdef012345"
-    profile:
-      type: object
-      properties:
-        photos:
-          type: array
-          items:
-            $ref: "#/components/schemas/photo"
-        photoCounter:
-          type: integer
-          example: "12"
-        followers:
-          type: array
-          items:
-            $ref: "#/components/schemas/identifier"
-        following:
-          type: array
-          items:
-            $ref: "#/components/schemas/identifier"
-        followersCounter:
-          type: integer
-          example: "12"
-        followingCounter:
-          type: integer
-          example: "12"
-    comment:
-      type: object
-      properties:
-        time:
-          type: string
-          example: "DD/MM/YY-HH:MM:SS"
+          description: Upload time of the comment
+          format: date-time
+          pattern: '(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})'
+          example: "2017-07-21 17:32:28"
+          minLength: 19
+          maxLength: 19
         uid_owner:
           type: string
-          example: "abcdef012345"
+          description: Comment owner id
+          example: "abcdef012345abcdef012345abcdef01"
+          pattern: '^(?!photo)\w'
+          minLength: 32
+          maxLength: 32
   
   responses:
     ServerDown:
@@ -118,9 +225,11 @@ components:
         application/json:
           schema:
             type: object
+            description: Server Down json alert
             properties:
               message:
                 type: string
+                description: Log
                 example: "Server Down"
     BadRequest:
       description: "Bad request"
@@ -128,9 +237,11 @@ components:
         application/json:
           schema:
             type: object
+            description: Bad Request json alert
             properties:
               message:
                 type: string
+                description: Log
                 example: "Bad request"
     Success:
       description: "Success"
@@ -138,9 +249,11 @@ components:
         application/json:
           schema:
             type: object
+            description: Success json alert
             properties:
               message:
                 type: string
+                description: Log
                 example: "Success"
     DeleteSuccess:
       description: "Resource deleted successfully"
@@ -148,9 +261,11 @@ components:
         application/json:
           schema:
             type: object
+            description: Delete Success json alert
             properties:
               message:
                 type: string
+                description: Log
                 example: "Successfully deleted"
 
 paths:
@@ -179,14 +294,12 @@ paths:
             application/json:
               schema:
                 type: object
+                description: A generated unique identifier will be returned
                 properties:
                   identifier:
                     # change here if you decide to use an integer
                     # or any other type of identifier
                     $ref: "#/components/schemas/identifier"
-                  message:
-                    type: string
-                    example: "Logged in"
         '400':
           $ref : "#/components/responses/BadRequest"
                     
@@ -194,13 +307,14 @@ paths:
           $ref : "#/components/responses/ServerDown"
   
   /user/{uid}/username:
-    # setMyUserName 
-    patch:
+    # setMyUserName
+    parameters:
+        - $ref: "#/components/parameters/uid"
+    put:
       tags: ["User"]
       summary: "Change my username"
+      description: If a user want to change his username he can patch it
       operationId: SetMyUserName
-      parameters:
-        - $ref: "#/components/parameters/uid"
       requestBody:
         description: New Username
         content:
@@ -215,9 +329,11 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Success log
                 properties:
                   message:
                     type: string
+                    description: Log
                     example: "Username changed"
         '400':
           $ref : "#/components/responses/BadRequest"
@@ -226,17 +342,18 @@ paths:
   
   /user/{uid}/following:
     # followUser
+    parameters:
+      - $ref: "#/components/parameters/uid"
     put:
       tags: ["User"]
       operationId: followUser
-      parameters:
-        - $ref: "#/components/parameters/uid"
       summary: "Follow a user"
+      description: A user can change his username specifying it in the requestBody
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/username"
+              $ref: "#/components/schemas/identifier"
         required: true
       responses:
         '201':
@@ -245,9 +362,11 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Success log
                 properties:
                   message:
                     type: string
+                    description: Log
                     example: "Success"
         '400':
           $ref: "#/components/responses/BadRequest"
@@ -257,53 +376,69 @@ paths:
     get:
       summary: Get following users ids
       tags: ["User"]
+      description: Get following users ids
       operationId: getFollowingId
-      parameters:
-        - $ref: "#/components/parameters/uid"
       responses:
         '200':
           description: Success
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/identifier"
+                type: object
+                description: An array of ids will be returned
+                properties:
+                  list:
+                    type: array
+                    description: Array of ids
+                    items:
+                      $ref: "#/components/schemas/identifier"
+                    minItems: 0
+                    maxItems: 50
+                      
         '400':
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
           
-  /user/{uid}/following/stream:
+  /user/{uid}/stream:
     #getMyStream
+    parameters:
+      - $ref: "#/components/parameters/uid"
     get:
       summary: Get user stream
+      description: Get user stream
       tags: ["Photo"]
       operationId: getMyStream
-      parameters:
-        - $ref: "#/components/parameters/uid"
       responses:
         '200':
           description: Return stream of photo from following
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/photo"
+                type: object
+                description: A photo array will be returned
+                properties:
+                  list:
+                    type: array
+                    description: Photo array
+                    items:
+                      $ref: "#/components/schemas/photo"
+                    minItems: 0
+                    maxItems: 50
         '400':
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
                 
-  /user/{uid}/following/{followedUid}:
+  /user/{uid}/following/{following_uid}:
     # unfollowUser
+    parameters:
+      - $ref: "#/components/parameters/uid"
+      - $ref: "#/components/parameters/following_uid"
     delete:
       tags: ["User"]
-      parameters:
-        - $ref: "#/components/parameters/uid"
-        - $ref: "#/components/parameters/followedUid"
       summary: "Unfollow a user"
+      description: Delete a follower from your following users
       operationId: unfollowUser
       responses:
         '200':
@@ -315,12 +450,13 @@ paths:
           
   /user/{uid}/followers:
     # addFollower
+    parameters:
+        - $ref: "#/components/parameters/uid"
     put:
       tags: ["User"]
       operationId: addFollower
-      parameters:
-        - $ref: "#/components/parameters/uid"
       summary: Add a Follower
+      description: Add a follower
       requestBody:
         content:
           application/json:
@@ -333,24 +469,27 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Success log
                 properties:
                   message:
                     type: string
+                    description: Log
                     example: "Successfully added new follower"
         '400':
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
           
-  /user/{uid}/followers/{followerUid}:
+  /user/{uid}/followers/{follower_uid}:
     #removeFollower
+    parameters:
+      - $ref: "#/components/parameters/uid"
+      - $ref: "#/components/parameters/follower_uid"
     delete:
       tags: ["User"]
       summary: Remove a Follower
+      description: Remove a follower from your followers list
       operationId: removeFollower
-      parameters:
-        - $ref: "#/components/parameters/uid"
-        - $ref: "#/components/parameters/followerUid"
       responses:
         '200':
           $ref: "#/components/responses/Success"
@@ -361,12 +500,13 @@ paths:
           
   /user/{uid}/ban:
     #banUser
+    parameters:
+        - $ref: "#/components/parameters/uid"
     put:
       summary: Ban user
+      description: Put a user in your own banned list
       operationId: banUser
       tags: ["User"]
-      parameters:
-        - $ref: "#/components/parameters/uid"
       requestBody:
         content:
           application/json:
@@ -379,24 +519,27 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Success log
                 properties:
                   message:
                     type: string
+                    description: Log
                     example: "Success"
         '400':
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
   
-  /user/{uid}/ban/{bannedUid}:
+  /user/{uid}/ban/{banned_uid}:
     #unbanUser
+    parameters:
+        - $ref: "#/components/parameters/uid"
+        - $ref: "#/components/parameters/banned_uid"
     delete:
       summary: Unban user
+      description: Remove a user from your banned list
       tags: ["User"]
       operationId: unbanUser
-      parameters:
-        - $ref: "#/components/parameters/uid"
-        - $ref: "#/components/parameters/bannedUid"
       responses:
         '200':
           $ref: "#/components/responses/Success"
@@ -405,14 +548,15 @@ paths:
         '500':
           $ref: "#/components/responses/ServerDown"
         
-  /user/{uid}/profile:
+  /user/{uid}:
     #getUserProfile
+    parameters:
+        - $ref: "#/components/parameters/uid"
     get:
       summary: Get user profile info
+      description: Get user profile info by user id
       operationId: getUserProfile
       tags: ["User"]
-      parameters:
-        - $ref: "#/components/parameters/uid"
       responses:
         '201':
           description: "Profile info returned"
@@ -431,6 +575,7 @@ paths:
       tags: ["User", "Photo"]
       operationId: uploadPhoto
       summary: "Upload a photo"
+      description: Upload a photo in your account
       requestBody:
         content:
           application/json:
@@ -444,23 +589,26 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Success log
                 properties:
                   message:
                     type: string
+                    description: Log
                     example: "Photo uploaded"
         '400':
           $ref : "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
           
-  /photo/{photoId}/likes:
+  /photo/{photo_id}/likes:
     # likePhoto
+    parameters:
+        - $ref: "#/components/parameters/photo_id"
     put:
       summary: Put like to a photo
+      description: Put like to a photo
       tags: ["Photo", "User"]
       operationId: likePhoto
-      parameters:
-        - $ref: "#/components/parameters/photoId"
       requestBody:
         content:
           application/json:
@@ -475,15 +623,16 @@ paths:
         '500':
           $ref: "#/components/responses/ServerDown"
           
-  /photo/{photoId}/likes/{uid}:
+  /photo/{photo_id}/likes/{uid}:
     # unlikePhoto
+    parameters:
+        - $ref: "#/components/parameters/photo_id"
+        - $ref: "#/components/parameters/uid"
     delete:
       summary: Unlike a photo
+      description: Add your like to one of the social network photo
       tags: ["Photo", "User"]
       operationId: unlikePhoto
-      parameters:
-        - $ref: "#/components/parameters/photoId"
-        - $ref: "#/components/parameters/uid"
       responses:
         '200':
           $ref: "#/components/responses/DeleteSuccess"
@@ -492,13 +641,14 @@ paths:
         '500':
           $ref: "#/components/responses/ServerDown"
       
-  /photo/{photoId}/comment:
+  /photo/{photo_id}/comment:
     #commentPhoto
+    parameters:
+      - $ref: "#/components/parameters/photo_id"
     post:
       summary: Add comment to a photo
+      description: Add your commento to a photo
       operationId: commentPhoto
-      parameters:
-        - $ref: "#/components/parameters/photoId"
       tags: ["Photo", "User"]
       requestBody:
         content:
@@ -512,24 +662,27 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Success log
                 properties:
                   message:
                     type: string
+                    description: Log
                     example: "Success"
         '400':
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
           
-  /photo/{photoId}/comment/{commentId}:
+  /photo/{photo_id}/comment/{comment_id}:
     # uncommentPhoto
+    parameters:
+      - $ref: "#/components/parameters/photo_id"
+      - $ref: "#/components/parameters/comment_id"
     delete:
       summary: Delete a comment
+      description: Delete a comment from a photo
       operationId: uncommentPhoto
       tags: ["User", "Photo"]
-      parameters:
-        - $ref: "#/components/parameters/photoId"
-        - $ref: "#/components/parameters/commentId"
       responses:
         '200':
           $ref: "#/components/responses/Success"
@@ -538,12 +691,13 @@ paths:
         '500':
           $ref: "#/components/responses/ServerDown"
           
-  /photo/{photoId}:
+  /photo/{photo_id}:
     # deletePhoto
+    parameters:
+        - $ref: "#/components/parameters/photo_id"
     delete:
       summary: Delete photo
-      parameters:
-        - $ref: "#/components/parameters/photoId"
+      description: Delete a photo from the site
       tags: ["User", "Photo"]
       operationId: deletePhoto
       responses:
