@@ -1,6 +1,18 @@
 # WasaPhoto
 Share your flash!
 
+## v1.0.2 Changelog
+Removed addFollower and removeFollower operation
+User identifiers parameters now reference the same uid parameter structure
+Removed getFollowingId
+Delete operation now has 204 instead of 200 as success message
+Some operation now use put method instead of post
+Fixed a typo in setMyUserName opertionId
+Responses schemas are now simpler
+Fixed 200 response from getUserProfile
+Fixed date-time pattern, now it follows example like "2017-07-21T17:32:28Z"
+Fixed reference in methods' requestBody
+
 ## v1.0.1 Changelog
 Added Tags Array  
 ---DONE  
