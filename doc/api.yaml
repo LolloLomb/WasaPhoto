@@ -70,8 +70,8 @@ components:
           format: date-time
           pattern: '(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z'
           example: "2017-07-21T17:32:28Z"
-          minLength: 19
-          maxLength: 19
+          minLength: 20
+          maxLength: 20
         uid_owner:
           $ref: "#/components/schemas/user/properties/id"
             
@@ -126,7 +126,7 @@ components:
           type: string
           description: 'Text of a comment'
           pattern: '^.{3,150}$'
-          example: "This is a comment, @#£/)!{ it works!!!"
+          example: "This is a comment!"
           minLength: 3
           maxLength: 150
         id:
@@ -141,8 +141,8 @@ components:
           format: date-time
           pattern: '(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z'
           example: "2017-07-21T17:32:28Z"
-          minLength: 19
-          maxLength: 19
+          minLength: 20
+          maxLength: 20
         uid_owner:
           $ref: "#/components/schemas/user/properties/id"
   
@@ -178,7 +178,7 @@ components:
           schema:
             type: string
             description: Log
-            example: "Successfully deleted"
+            example: "Deleted"
 
 paths:
   /session:
