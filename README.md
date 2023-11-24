@@ -1,6 +1,9 @@
 # WasaPhoto
 Share your flash!
 
+## v1.0.3 Changelog
+Fixed date-time minLength maxLength len(example) mismatch (19 --> 20)
+
 ## v1.0.2 Changelog
 Removed addFollower and removeFollower operation   
 User identifiers parameters now reference the same uid parameter structure   
