@@ -3,7 +3,7 @@ info:
   title: WASAPhoto
   description: |
     Share the moments you love with people you love!
-  version: 1.0.2
+  version: 1.0.4
 
 security:
   - bearerAuth: []
@@ -48,22 +48,21 @@ components:
       required:
         - id
         - uid_owner
+        - url
+        - upload_date
       type: object
       description: Photo Object
       properties:
         url:
           type: string
           description: Photo url
-          pattern: |-
-            ^data:image\/(?:gif|png|jpeg|bmp|webp)(?:;charset=utf-8)?;base64,(?:[A-Za-z0-9]|[+/])+={0,2}$
-          minLength: 0
-          maxLength: 1000
+          pattern: '^.*\.(png|jpg|jpeg)$'
+          minLength: 13
+          maxLength: 40
         id:
-          type: string
+          type: integer
           description: Photo id
-          pattern: '^photo\w'
-          minLength: 32
-          maxLength: 32
+          example: 12
         upload_date:
           type: string
           description: Upload date
@@ -90,35 +89,16 @@ components:
           minLength: 3
           maxLength: 16
         id:
-          type: string
+          type: integer
           description: User identifier
-          pattern: '^user\w'
-          minLength: 32
-          maxLength: 32
-        photos:
-          type: array
-          description: Array of photos
-          items:
-            $ref: "#/components/schemas/photo"
-          minItems: 0
-          maxItems: 9999
-        photo_counter:
-          type: integer
-          description: Photo counter
-          example: 12
-        followers_counter:
-          type: integer
-          description: Followers counter
-          example: 12
-        following_counter:
-          type: integer
-          description: Following counter
           example: 12
    
     comment:
       required:
         - id
         - uid_owner
+        - text
+        - upload_date
       type: object
       description: Comment object
       properties:
@@ -127,14 +107,12 @@ components:
           description: 'Text of a comment'
           pattern: '^.{3,150}$'
           example: "This is a comment!"
-          minLength: 3
+          minLength: 1
           maxLength: 150
         id:
-          type: string
+          type: integer
           description: Comment id
-          pattern: '^comment\w'
-          minLength: 32
-          maxLength: 32
+          example: 12
         upload_date:
           type: string
           description: Upload time of the comment
@@ -220,7 +198,7 @@ paths:
   /user/{uid}/username:
     # setMyUserName
     parameters:
-        - $ref: "#/components/parameters/uid"
+     - $ref: "#/components/parameters/uid"
     put:
       tags: ["User"]
       summary: "Change my username"
@@ -259,11 +237,9 @@ paths:
         content:
           application/json:
             schema:
-              type: string
+              type: integer
               description: User identifier as in user/properties/id
-              pattern: '^user\w'
-              minLength: 32
-              maxLength: 32
+              example: 12
         required: true
       responses:
         '201':
@@ -341,11 +317,10 @@ paths:
         content:
           application/json:
             schema:
-              type: string
+              type: integer
               description: User identifier as in user/properties/id
               pattern: '^user\w'
-              minLength: 32
-              maxLength: 32
+              example: 12
       responses:
         '201':
           description: User identifier has been banned
@@ -445,11 +420,9 @@ paths:
           application/json:
             schema:
               # LIKES REQUIRES UID, BACKEND MANAGEMENT
-              type: string
+              type: integer
               description: User identifier as in user/properties/id
-              pattern: '^user\w'
-              minLength: 32
-              maxLength: 32
+              example: 12
         required: true
       responses:
         '201':
