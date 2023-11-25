@@ -1,6 +1,10 @@
 # WasaPhoto
 Share your flash!
 
+## v1.0.4 Changelog
+Fixed schemas properties types
+Fixed identifier behaviour (string --> integer)
+
 ## v1.0.3 Changelog
 Fixed date-time minLength maxLength len(example) mismatch (19 --> 20)
 
