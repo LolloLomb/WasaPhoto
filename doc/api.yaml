@@ -319,7 +319,6 @@ paths:
             schema:
               type: integer
               description: User identifier as in user/properties/id
-              pattern: '^user\w'
               example: 12
       responses:
         '201':
