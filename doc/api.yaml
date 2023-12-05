@@ -5,9 +5,6 @@ info:
     Share the moments you love with people you love!
   version: 1.0.4
 
-security:
-  - bearerAuth: []
-  
 tags:
   - name: Login
   - name: User
@@ -48,17 +45,10 @@ components:
       required:
         - id
         - uid_owner
-        - url
         - upload_date
       type: object
       description: Photo Object
       properties:
-        url:
-          type: string
-          description: Photo url
-          pattern: '^.*\.(png|jpg|jpeg)$'
-          minLength: 13
-          maxLength: 40
         id:
           type: integer
           description: Photo id
@@ -71,6 +61,9 @@ components:
           example: "2017-07-21T17:32:28Z"
           minLength: 20
           maxLength: 20
+        url:
+          type: string
+          format: binary
         uid_owner:
           $ref: "#/components/schemas/user/properties/id"
             
@@ -174,12 +167,15 @@ paths:
         content:
           application/json:
             schema:
-              type: string
-              description: User name structure as its defined in user/properties/name
-              pattern: '[a-zA-Z0-9]'
-              example: 'Maria'
-              minLength: 3
-              maxLength: 16
+              type: object
+              description: username schemas
+              properties:
+                username:
+                  description: User name structure as its defined in user/properties/name
+                  pattern: '[a-zA-Z0-9]'
+                  example: 'Maria'
+                  minLength: 3
+                  maxLength: 16
         required: true
       
       responses:
@@ -209,12 +205,16 @@ paths:
         content:
           application/json:
             schema:
-              type: string
-              description: User name structure as its defined in user/properties/name
-              pattern: '[a-zA-Z0-9]'
-              example: 'Maria'
-              minLength: 3
-              maxLength: 16
+              type: object
+              description: request object
+              properties:
+                newUsername:
+                  type: string
+                  description: User name structure as its defined in user/properties/name
+                  pattern: '[a-zA-Z0-9]'
+                  example: 'Maria'
+                  minLength: 3
+                  maxLength: 16
         required: true
       responses:
         '200':
@@ -223,6 +223,8 @@ paths:
           $ref : "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
   
   /user/{uid}/following:
     # followUser
@@ -237,9 +239,13 @@ paths:
         content:
           application/json:
             schema:
-              type: integer
-              description: User identifier as in user/properties/id
-              example: 12
+              type: object
+              description: identifier object
+              properties:
+                identifier:
+                  type: integer
+                  description: User identifier as in user/properties/id
+                  example: 12
         required: true
       responses:
         '201':
@@ -254,6 +260,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
           
   /user/{uid}/stream:
     #getMyStream
@@ -270,16 +278,22 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                description: Array of photo
-                items:
-                  $ref: "#/components/schemas/photo"
-                minItems: 0
-                maxItems: 9999
+                type: object
+                description: response object
+                properties:
+                  stream:
+                    type: array
+                    description: Array of photo
+                    items:
+                      $ref: "#/components/schemas/photo"
+                    minItems: 0
+                    maxItems: 10
         '400':
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
                 
   /user/{uid}/following/{following_uid}:
     # unfollowUser
@@ -303,6 +317,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+          - bearerAuth: [] 
           
   /user/{uid}/ban:
     #banUser
@@ -317,22 +333,32 @@ paths:
         content:
           application/json:
             schema:
-              type: integer
-              description: User identifier as in user/properties/id
-              example: 12
+              type: object
+              description: request object
+              properties:
+                identifier:
+                  type: integer
+                  description: User identifier as in user/properties/id
+                  example: 12
       responses:
         '201':
           description: User identifier has been banned
           content:
             application/json:
               schema:
-                type: string
-                description: Log
-                example: "Success"
+                type: object
+                description: request Object
+                properties:
+                  identifier:
+                    type: string
+                    description: Log
+                    example: "Success"
         '400':
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
   
   /user/{uid}/ban/{banned_uid}:
     #unbanUser
@@ -356,6 +382,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
         
   /user/{uid}/profile:
     #getUserProfile
@@ -377,6 +405,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
           
   /photo:
     # uploadPhoto
@@ -397,14 +427,20 @@ paths:
           content:
             application/json:
               schema:
-                type: string
-                description: Log
-                example: "Photo uploaded"
+                type: object
+                description: message object
+                properties:
+                  message:
+                    type: string
+                    description: Log
+                    example: "Photo uploaded"
         '400':
           $ref : "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
-          
+      security:
+        - bearerAuth: [] 
+        
   /photo/{photo_id}/likes:
     # likePhoto
     parameters:
@@ -419,9 +455,13 @@ paths:
           application/json:
             schema:
               # LIKES REQUIRES UID, BACKEND MANAGEMENT
-              type: integer
-              description: User identifier as in user/properties/id
-              example: 12
+              type: object
+              description: photo identifier
+              properties:
+                identifier:
+                  type: integer
+                  description: User identifier as in user/properties/id
+                  example: 12
         required: true
       responses:
         '201':
@@ -429,13 +469,19 @@ paths:
           content:
             application/json:
               schema:
-                type: string
-                description: Log
-                example: "Success"
+                type: object
+                description: message object
+                properties:
+                  message:  
+                    type: string
+                    description: Log
+                    example: "Success"
         '400':
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
           
   /photo/{photo_id}/likes/{uid}:
     # unlikePhoto
@@ -454,6 +500,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
       
   /photo/{photo_id}/comment:
     #commentPhoto
@@ -476,13 +524,19 @@ paths:
           content:
             application/json:
               schema:
-                type: string
-                description: Log
-                example: "Success"
+                type: object
+                description: response object
+                properties:
+                  message:
+                    type: string
+                    description: Log
+                    example: "Success"
         '400':
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
           
   /photo/{photo_id}/comment/{comment_id}:
     # uncommentPhoto
@@ -501,6 +555,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
           
   /photo/{photo_id}:
     # deletePhoto
@@ -518,3 +574,5 @@ paths:
           $ref: "#/components/responses/BadRequest"
         '500':
           $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 

@@ -55,4 +55,3 @@ snake_case notation
 -Change from followed_uid to following_uid  
 -getUserProfile now operate in /user/{uid} and profile schema has new property "identifier"  
 
-
