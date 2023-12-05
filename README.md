@@ -1,12 +1,17 @@
 # WasaPhoto
 Share your flash!
 
+## v2.0.0 Changelog
+Changed security scheme application   
+Changed application/json request and response format ( <type> ---> object )   
+Implemented first simple methods   
+
 ## v1.0.4 Changelog
 Fixed schemas properties types  
 Fixed identifier behaviour (string --> integer)  
 
 ## v1.0.3 Changelog
-Fixed date-time minLength maxLength len(example) mismatch (19 --> 20)
+Fixed date-time minLength maxLength len(example) mismatch (19 --> 20)   
 
 ## v1.0.2 Changelog
 Removed addFollower and removeFollower operation   
