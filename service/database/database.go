@@ -34,7 +34,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 )
 
 // AppDatabase is the high level interface for the DB
@@ -46,6 +45,8 @@ type AppDatabase interface {
 	GetFollowing(uid int) ([]int, error)
 	UnfollowUser(uid int, followedUid int) error
 	BanUser(uid int, bannedUid int) error
+	IdExists(uid int) (bool, error)
+	UnbanUser(uid int, bannedUid int) error
 	Ping() error
 }
 
@@ -72,7 +73,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 	}
 
 	// TESTS
-	result, err := db.Exec("INSERT INTO user (uid, username) VALUES (11, 'antonio');")
+	/*result, err := db.Exec("INSERT INTO user (uid, username) VALUES (11, 'antonio');")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +89,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 	for rows.Next() {
 		rows.Scan(&uid, &username)
 		fmt.Println(uid, username)
-	}
+	}*/
 	return &appdbimpl{
 		c: db,
 	}, nil
@@ -96,7 +97,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 
 func createTables(db *sql.DB) error {
 	db.Exec("PRAGMA foreign_key=ON;")
-	userQuery := `CREATE TABLE user (
+	userQuery := `CREATE TABLE IF NOT EXISTS user (
 		uid INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT,
 		UNIQUE(uid, username)
@@ -105,7 +106,7 @@ func createTables(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("error creating users structure: %w", err)
 	}
-	photoQuery := `CREATE TABLE photo (photoId INTEGER PRIMARY KEY AUTOINCREMENT,
+	photoQuery := `CREATE TABLE IF NOT EXISTS photo (photoId INTEGER PRIMARY KEY AUTOINCREMENT,
 					upload_date DATETIME, 
 					uid INTEGER, 
 					url TEXT,
@@ -114,7 +115,7 @@ func createTables(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("error creating photo structure: %w", err)
 	}
-	commentQuery := `CREATE TABLE comment (commentId INTEGER PRIMARY KEY AUTOINCREMENT,
+	commentQuery := `CREATE TABLE IF NOT EXISTS comment (commentId INTEGER PRIMARY KEY AUTOINCREMENT,
 					commentText TEXT,
 					upload_date DATETIME,
 					uid INTEGER, 
@@ -125,7 +126,7 @@ func createTables(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("error creating comment structure: %w", err)
 	}
-	followQuery := `CREATE TABLE follow (
+	followQuery := `CREATE TABLE IF NOT EXISTS follow (
 		uid INTEGER,
 		followedUid INTEGER, 
 		PRIMARY KEY (uid, followedUid),
@@ -137,7 +138,7 @@ func createTables(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("error creating follow structure: %w", err)
 	}
-	likeQuery := `CREATE TABLE like (uid INTEGER,
+	likeQuery := `CREATE TABLE IF NOT EXISTS like (uid INTEGER,
 					likedPhotoId INTEGER, 
 					PRIMARY KEY (uid, likedPhotoId),
 					FOREIGN KEY (uid) REFERENCES user(uid),
@@ -146,7 +147,7 @@ func createTables(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("error creating like structure: %w", err)
 	}
-	banQuery := `CREATE TABLE ban (
+	banQuery := `CREATE TABLE IF NOT EXISTS ban (
 		uid INTEGER,
 		bannedUid INTEGER,
 		PRIMARY KEY (uid, bannedUid),

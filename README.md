@@ -1,6 +1,11 @@
 # WasaPhoto
 Share your flash!
 
+## v2.0.1 Changelog
+Introduced binary data format for images   
+Added controls over banUser and followUser methods   
+Introduced some utils for db operations   
+
 ## v2.0.0 Changelog
 Changed security scheme application   
 Changed application/json request and response format ( <type> ---> object )   

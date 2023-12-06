@@ -117,17 +117,31 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.P
 
 func (rt *_router) followUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Decodifica il corpo JSON della richiesta in una struttura
-	var requestBody Identifier
+	var requestBody User
 	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		// Gestisci errori di decodifica JSON
 		response := Response{ErrorMessage: "Errore durante la decodifica del corpo JSON"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
+
 	uid, _ := strconv.Atoi(ps.ByName("uid"))
-	t := requestBody.Content
-	followedUid, _ := strconv.Atoi(t)
-	err := rt.db.FollowUser(uid, followedUid)
+	valid, _ := rt.db.IdExists(uid)
+	// Chiamo il database
+	if !valid {
+		response := Response{ErrorMessage: "Id non valido"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	followedUid, err := rt.db.GetId(requestBody.Content)
+	if err != nil {
+		response := Response{ErrorMessage: "Username non valido"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	err = rt.db.FollowUser(uid, followedUid)
 	if err == database.ErrCannotFollowHimself {
 		response := Response{ErrorMessage: "User id e following user id coincidono"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
@@ -176,7 +190,7 @@ func (rt *_router) unfollowUser(w http.ResponseWriter, r *http.Request, ps httpr
 
 func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Decodifica il corpo JSON della richiesta in una struttura
-	var requestBody Identifier
+	var requestBody User
 	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		// Gestisci errori di decodifica JSON
 		response := Response{ErrorMessage: "Errore durante la decodifica del corpo JSON"}
@@ -184,11 +198,24 @@ func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	uidBanned, _ := strconv.Atoi(requestBody.Content)
+	uidBanned, err := rt.db.GetId(requestBody.Content)
+	if err != nil {
+		response := Response{ErrorMessage: "Username non valido"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
 
 	uid, _ := strconv.Atoi(ps.ByName("uid"))
+	valid, _ := rt.db.IdExists(uid)
+	//log.Print("uid = ", uid, " uidBanned = ", uidBanned, valid)
 	// Chiamo il database
-	err := rt.db.BanUser(uid, uidBanned)
+	if !valid {
+		response := Response{ErrorMessage: "Id non valido"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	err = rt.db.BanUser(uid, uidBanned)
 
 	if err == database.ErrAlreadyBanned {
 		response := Response{ErrorMessage: "Utente già bannato"}
@@ -213,7 +240,30 @@ func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter
 
 	// Invia la risposta JSON
 	sendJSONResponse(w, response, http.StatusOK)
+}
 
+func (rt *_router) unbanUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	uid, _ := strconv.Atoi(ps.ByName("uid"))
+	bannedUid, _ := strconv.Atoi(ps.ByName("banned_uid"))
+
+	err := rt.db.UnbanUser(uid, bannedUid)
+
+	if err == sql.ErrNoRows {
+		response := Response{ErrorMessage: "You haven't banned this user"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	if err != nil {
+		response := Response{ErrorMessage: "Errore server"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+	// Creare una risposta JSON di successo con il messaggio di log
+	response := Response{SuccessMessage: fmt.Sprintf("User successfully removed from banned list: %d", bannedUid)}
+
+	// Invia la risposta JSON
+	sendJSONResponse(w, response, http.StatusOK)
 }
 
 func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {

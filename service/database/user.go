@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"errors"
+	"log"
 	"strconv"
 )
 
@@ -103,6 +104,14 @@ func (db *appdbimpl) FollowExists(uid int, followedUid int) (bool, error) {
 	return exists, nil
 }
 
+func (db *appdbimpl) IdExists(uid int) (bool, error) {
+	var exists bool
+	query := "SELECT EXISTS (SELECT 1 FROM user WHERE uid = ?)"
+	err := db.c.QueryRow(query, uid).Scan(&exists)
+	log.Print(uid, err, exists, " from database")
+	return exists, err
+}
+
 func (db *appdbimpl) BanExists(uid int, bannedUid int) (bool, error) {
 	var exists bool
 	query := "SELECT EXISTS (SELECT 1 FROM ban WHERE uid = ? AND bannedUid = ?)"
@@ -183,6 +192,27 @@ func (db *appdbimpl) BanUser(uid int, bannedUid int) error {
 	_, err = db.c.Exec(query, uid, bannedUid)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (db *appdbimpl) UnbanUser(uid int, bannedUid int) error {
+	query := "DELETE FROM ban WHERE uid=? AND bannedUid=?;"
+	result, err := db.c.Exec(query, uid, bannedUid)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		// Nessuna riga è stata eliminata, quindi l'entry non è stata trovata
+		return sql.ErrNoRows
 	}
 
 	return nil

@@ -16,6 +16,11 @@ func (rt *_router) Handler() http.Handler {
 	//rt.router.GET("/user/:uid/stream", rt.wrap(rt.getMyStream))
 	rt.router.DELETE("/user/:uid/following/:following_uid", rt.wrap(rt.unfollowUser))
 	rt.router.POST("/user/:uid/ban", rt.wrap(rt.banUser))
+	rt.router.DELETE("/user/:uid/ban/:banned_uid", rt.wrap(rt.unbanUser))
+	//rt.router.GET("user/:uid/profile", rt.wrap(rt.getUserProfile))
+
+	//TODO questo qui sotto, controlla come fare a gestire image/* invece del classico application/json
+	//rt.router.POST("photo", rt.wrap(rt.uploadPhoto))
 
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)
