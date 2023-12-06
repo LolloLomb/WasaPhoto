@@ -63,6 +63,7 @@ components:
           maxLength: 20
         url:
           type: string
+          description: photo url
           format: binary
         uid_owner:
           $ref: "#/components/schemas/user/properties/id"
@@ -171,6 +172,7 @@ paths:
               description: username schemas
               properties:
                 username:
+                  type: string
                   description: User name structure as its defined in user/properties/name
                   pattern: '[a-zA-Z0-9]'
                   example: 'Maria'
