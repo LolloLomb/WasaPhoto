@@ -3,8 +3,8 @@ package database
 import (
 	"database/sql"
 	"errors"
-	"log"
 	"strconv"
+	"time"
 )
 
 var ErrUserAlreadyInTheDb error = errors.New("user already in the db")
@@ -13,6 +13,7 @@ var ErrCannotFollowHimself error = errors.New("user id and following id are the 
 var ErrAlreadyFollowing error = errors.New("already following")
 var ErrAlreadyBanned error = errors.New("already banned")
 var ErrCannotBanHimself error = errors.New("user cannot ban himself")
+var ErrAlreadyLiked error = errors.New("already liked")
 
 func (db *appdbimpl) CreateUser(username string) error {
 	flag, _ := db.UsernameExists(username)
@@ -24,6 +25,46 @@ func (db *appdbimpl) CreateUser(username string) error {
 		return err
 	}
 	return nil
+}
+
+func (db *appdbimpl) CreatePhoto(uid int) (int, error) {
+	/* lastPhotoId, err := db.getLastPhotoId()
+	if err != nil{
+		return err
+	} */
+	formattedTime := time.Now().Format("2006-01-02T15:04:05Z")
+	query := "INSERT INTO photo (upload_date, uid) VALUES (?,?);"
+	_, err := db.c.Exec(query, formattedTime, uid)
+	if err != nil {
+		return -1, err
+	}
+	photoId, err := db.getLastPhotoId(uid)
+	if err != nil {
+		return photoId, err
+	}
+	return photoId, nil
+}
+
+func (db *appdbimpl) getLastPhotoId(uid int) (int, error) {
+	query := "SELECT photoId FROM photo WHERE userId = ? ORDER BY photoId DESC LIMIT 1;"
+
+	// Eseguire la query
+	rows, err := db.c.Query(query, uid)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	// Scorrere i risultati della query
+	var lastPhotoID int = -1
+	for rows.Next() {
+		if err := rows.Scan(&lastPhotoID); err != nil {
+			return 0, err
+		}
+	}
+
+	// Se non ci sono risultati (tabella vuota), restituire un valore predefinito o un errore
+	return lastPhotoID, errors.New("nessun risultato trovato per l'utente specificato")
 }
 
 func (db *appdbimpl) SetMyNickname(newName string, uid int) error {
@@ -108,7 +149,13 @@ func (db *appdbimpl) IdExists(uid int) (bool, error) {
 	var exists bool
 	query := "SELECT EXISTS (SELECT 1 FROM user WHERE uid = ?)"
 	err := db.c.QueryRow(query, uid).Scan(&exists)
-	log.Print(uid, err, exists, " from database")
+	return exists, err
+}
+
+func (db *appdbimpl) PhotoIdExists(photoId int) (bool, error) {
+	var exists bool
+	query := "SELECT EXISTS (SELECT 1 FROM photo WHERE photoId = ?)"
+	err := db.c.QueryRow(query, photoId).Scan(&exists)
 	return exists, err
 }
 
@@ -117,6 +164,18 @@ func (db *appdbimpl) BanExists(uid int, bannedUid int) (bool, error) {
 	query := "SELECT EXISTS (SELECT 1 FROM ban WHERE uid = ? AND bannedUid = ?)"
 
 	err := db.c.QueryRow(query, uid, bannedUid).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func (db *appdbimpl) LikeExists(uid int, photoId int) (bool, error) {
+	var exists bool
+	query := "SELECT EXISTS (SELECT 1 FROM like WHERE uid = ? AND likedPhotoId = ?)"
+
+	err := db.c.QueryRow(query, uid, photoId).Scan(&exists)
 	if err != nil {
 		return false, err
 	}
@@ -176,7 +235,7 @@ func (db *appdbimpl) BanUser(uid int, bannedUid int) error {
 		return ErrCannotBanHimself
 	}
 
-	// Verifica se la tupla è già presente nella tabella follow
+	// Verifica se la tupla è già presente nella tabella ban
 	exists, err := db.BanExists(uid, bannedUid)
 	if err != nil {
 		return err
@@ -192,6 +251,49 @@ func (db *appdbimpl) BanUser(uid int, bannedUid int) error {
 	_, err = db.c.Exec(query, uid, bannedUid)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (db *appdbimpl) LikePhoto(uid int, photoId int) error {
+	// Verifica se la tupla è già presente nella tabella like
+	exists, err := db.LikeExists(uid, photoId)
+	if err != nil {
+		return err
+	}
+
+	// Se la tupla è già presente, restituisci un errore specifico
+	if exists {
+		return ErrAlreadyLiked
+	}
+
+	// Inserisci la tupla nella tabella like
+	query := "INSERT INTO like (uid, likedPhotoId) VALUES (?,?);"
+	_, err = db.c.Exec(query, uid, photoId)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *appdbimpl) UnlikePhoto(uid int, photoId int) error {
+	query := "DELETE FROM like WHERE uid=? AND likedPhotoId=?;"
+	result, err := db.c.Exec(query, uid, photoId)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		// Nessuna riga è stata eliminata, quindi l'entry non è stata trovata
+		return sql.ErrNoRows
 	}
 
 	return nil

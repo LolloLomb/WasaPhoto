@@ -3,10 +3,11 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 
-	//"log"
+	// "log"
 	"net/http"
 	"strconv"
 
@@ -17,6 +18,16 @@ import (
 
 type User struct {
 	Content string `json:"username"`
+}
+
+type Photo struct {
+	Content string `json:"photo_data"`
+	Owner   string `json:"username_owner"`
+}
+
+type Comment struct {
+	Text  string `json:"text"`
+	Owner string `json:"username_owner"`
 }
 
 type NewUsername struct {
@@ -52,7 +63,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	uid, _ := strconv.Atoi(ps.ByName("uid"))
 	// Chiamare il pacchetto del database per impostare il nuovo username
 	err := rt.db.SetMyNickname(newUsername, uid)
-	if err == database.ErrNameAlreadyTaken {
+	if errors.Is(err, database.ErrNameAlreadyTaken) {
 		response := Response{ErrorMessage: "Nome utente già in uso"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
@@ -75,7 +86,7 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	// Decodifica il corpo JSON della richiesta in una struttura
 	var requestBody User
 	bytes, _ := io.ReadAll(r.Body)
-	//println(string(bytes))
+	// println(string(bytes))
 	if err := json.Unmarshal(bytes, &requestBody); err != nil {
 		// if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		// Gestisci errori di decodifica JSON
@@ -90,12 +101,12 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
-	//println(username)
+	// println(username)
 	err := rt.db.CreateUser(username)
 	id, _ := rt.db.GetId(username)
-	//println(username, id)
-	//log.Printf("%v", err)
-	if err == database.ErrUserAlreadyInTheDb {
+	// println(username, id)
+	// log.Printf("%v", err)
+	if errors.Is(err, database.ErrUserAlreadyInTheDb) {
 		// Gestisci l'errore e invia una risposta JSON con il messaggio di errore
 		response := Response{SuccessMessage: fmt.Sprintf("Successful Login. ID: %v", id)}
 		sendJSONResponse(w, response, 200)
@@ -142,12 +153,12 @@ func (rt *_router) followUser(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	err = rt.db.FollowUser(uid, followedUid)
-	if err == database.ErrCannotFollowHimself {
+	if errors.Is(err, database.ErrCannotFollowHimself) {
 		response := Response{ErrorMessage: "User id e following user id coincidono"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
-	if err == database.ErrAlreadyFollowing {
+	if errors.Is(err, database.ErrAlreadyFollowing) {
 		response := Response{ErrorMessage: fmt.Sprintf("L'utente già segue il seguente following id: %d", followedUid)}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
@@ -170,7 +181,7 @@ func (rt *_router) unfollowUser(w http.ResponseWriter, r *http.Request, ps httpr
 
 	err := rt.db.UnfollowUser(uid, followedUid)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		response := Response{ErrorMessage: "You aren't following this user"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
@@ -207,7 +218,7 @@ func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter
 
 	uid, _ := strconv.Atoi(ps.ByName("uid"))
 	valid, _ := rt.db.IdExists(uid)
-	//log.Print("uid = ", uid, " uidBanned = ", uidBanned, valid)
+	// log.Print("uid = ", uid, " uidBanned = ", uidBanned, valid)
 	// Chiamo il database
 	if !valid {
 		response := Response{ErrorMessage: "Id non valido"}
@@ -217,12 +228,12 @@ func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter
 
 	err = rt.db.BanUser(uid, uidBanned)
 
-	if err == database.ErrAlreadyBanned {
+	if errors.Is(err, database.ErrAlreadyBanned) {
 		response := Response{ErrorMessage: "Utente già bannato"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
-	if err == database.ErrCannotBanHimself {
+	if errors.Is(err, database.ErrCannotBanHimself) {
 		// Gestisci l'errore e invia una risposta JSON con il messaggio di errore
 		response := Response{ErrorMessage: "L'utente non può bannarsi da solo"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
@@ -248,7 +259,7 @@ func (rt *_router) unbanUser(w http.ResponseWriter, r *http.Request, ps httprout
 
 	err := rt.db.UnbanUser(uid, bannedUid)
 
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		response := Response{ErrorMessage: "You haven't banned this user"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return

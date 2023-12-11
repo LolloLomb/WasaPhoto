@@ -46,6 +46,7 @@ components:
         - id
         - uid_owner
         - upload_date
+        - photo_data
       type: object
       description: Photo Object
       properties:
@@ -61,13 +62,15 @@ components:
           example: "2017-07-21T17:32:28Z"
           minLength: 20
           maxLength: 20
-        url:
+        photo_data:
           type: string
-          description: photo url
           format: binary
+          description: photo binary data
+          minLength: 0
+          maxLength: 100
         uid_owner:
           $ref: "#/components/schemas/user/properties/id"
-            
+
     user:
       type: object
       description: User profile infos
@@ -419,6 +422,8 @@ paths:
           
   /photo:
     # uploadPhoto
+    parameters:
+        - $ref: "#/components/parameters/uid"
     post:
       tags: ["User", "Photo"]
       operationId: uploadPhoto
@@ -426,20 +431,25 @@ paths:
       description: Upload a photo in your account
       requestBody:
         content:
-          image/*:
+          application/json:
             schema:
               description: Image content
               type: object
               properties:
                 photo_data:
-                  description: "Photo binary data"
+                  description: "Raw data of the photo"
                   type: string
                   minLength: 0
                   maxLength: 100
                   format: binary
                   example: "010110010"
-              example: 
-                photo_data: "010110010"
+                username_owner:
+                  description: owner of the photo
+                  type: string
+                  minLength: 3
+                  maxLength: 16
+                  pattern: '[a-zA-Z0-9]'
+                  example: 'Maria'
         required: true
       responses:
         '201':
@@ -465,6 +475,7 @@ paths:
     # likePhoto
     parameters:
       - $ref: "#/components/parameters/photo_id"
+      - $ref: "#/components/parameters/uid"
     post:
       summary: Put like to a photo
       description: Put like to a photo
@@ -474,9 +485,8 @@ paths:
         content:
           application/json:
             schema:
-              # LIKES REQUIRES UID, BACKEND MANAGEMENT
               type: object
-              description: user identifier
+              description: username
               properties:
                 username:
                   type: string
@@ -539,7 +549,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/comment"
+              type: object
+              description: comment object
+              properties:
+                text:
+                  type: string
+                  description: 'Text of a comment'
+                  pattern: '^.{3,150}$'
+                  example: "This is a comment!"
+                  minLength: 1
+                  maxLength: 150
+                username_owner:
+                  type: string
+                  description: User name
+                  pattern: '[a-zA-Z0-9]'
+                  example: 'Maria'
+                  minLength: 3
+                  maxLength: 16
         required: true
       responses:
         '201':

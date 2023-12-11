@@ -47,6 +47,10 @@ type AppDatabase interface {
 	BanUser(uid int, bannedUid int) error
 	IdExists(uid int) (bool, error)
 	UnbanUser(uid int, bannedUid int) error
+	CreatePhoto(uid int) (int, error)
+	PhotoIdExists(photoId int) (bool, error)
+	LikePhoto(uid int, photoId int) error
+	UnlikePhoto(uid int, photoId int) error
 	Ping() error
 }
 
@@ -73,7 +77,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 	}
 
 	// TESTS
-	/*result, err := db.Exec("INSERT INTO user (uid, username) VALUES (11, 'antonio');")
+	/* result, err := db.Exec("INSERT INTO user (uid, username) VALUES (11, 'antonio');")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,21 +100,31 @@ func New(db *sql.DB) (AppDatabase, error) {
 }
 
 func createTables(db *sql.DB) error {
-	db.Exec("PRAGMA foreign_key=ON;")
+	_, err := db.Exec("PRAGMA foreign_key=ON;")
+	if err != nil {
+		return fmt.Errorf("error managind database : pragma foreign_key = on failed")
+	}
 	userQuery := `CREATE TABLE IF NOT EXISTS user (
 		uid INTEGER PRIMARY KEY AUTOINCREMENT,
 		username TEXT,
 		UNIQUE(uid, username)
 	);`
-	_, err := db.Exec(userQuery)
+	_, err = db.Exec(userQuery)
 	if err != nil {
 		return fmt.Errorf("error creating users structure: %w", err)
 	}
 	photoQuery := `CREATE TABLE IF NOT EXISTS photo (photoId INTEGER PRIMARY KEY AUTOINCREMENT,
 					upload_date DATETIME, 
 					uid INTEGER, 
-					url TEXT,
 					FOREIGN KEY(uid) REFERENCES user(uid) ON DELETE CASCADE);`
+	// HO RIMOSSO URL DAL DATABASE PER ORA url TEXT
+
+	/*  questo è stato rimosso dalla documentazione api per lo schema photo
+	url:
+		type: string
+		description: photo url
+		format: binary
+	*/
 	_, err = db.Exec(photoQuery)
 	if err != nil {
 		return fmt.Errorf("error creating photo structure: %w", err)
