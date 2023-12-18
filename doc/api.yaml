@@ -389,27 +389,15 @@ paths:
       security:
         - bearerAuth: [] 
         
-  /profile:
+  /user/{uid}:
     #getUserProfile
+    parameters:
+      - $ref: "#/components/parameters/uid"
     get:
       summary: Get user profile info
       description: Get user profile info by user id
       operationId: getUserProfile
       tags: ["User"]
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              description: request object
-              properties:
-                username:
-                  type: string
-                  description: User name structure as its defined in user/properties/name
-                  pattern: '[a-zA-Z0-9]'
-                  example: 'Maria'
-                  minLength: 3
-                  maxLength: 16
       responses:
         '200':
           description: Return user profile

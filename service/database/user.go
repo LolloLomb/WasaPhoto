@@ -119,6 +119,17 @@ func (db *appdbimpl) GetId(username string) (int, error) {
 	return result, err
 }
 
+func (db *appdbimpl) GetUsername(uid int) (string, error) {
+	query := "SELECT username FROM user WHERE uid = ?;"
+	row := db.c.QueryRow(query, uid)
+	var username string
+	err := row.Scan(&uid)
+	if err != nil {
+		return "", err
+	}
+	return username, err
+}
+
 func (db *appdbimpl) FollowUser(uid int, followedUid int) error {
 	if uid == followedUid {
 		return ErrCannotFollowHimself

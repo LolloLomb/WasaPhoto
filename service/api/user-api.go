@@ -287,12 +287,12 @@ func (rt *_router) unbanUser(w http.ResponseWriter, r *http.Request, ps httprout
 }
 
 func (rt *_router) getUserProfile(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	var requestBody User
 
-	uid, err := rt.db.GetId(requestBody.Content)
+	uid, _ := strconv.Atoi(ps.ByName("uid"))
+	username, err := rt.db.GetUsername(uid)
 
 	if err != nil {
-		response := Response{ErrorMessage: "Username non valido"}
+		response := Response{ErrorMessage: "Username non trovato o non valido"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
@@ -322,7 +322,7 @@ func (rt *_router) getUserProfile(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	profile := Profile{
-		Username:    requestBody.Content,
+		Username:    username,
 		Id:          uid,
 		Following:   following,
 		Followers:   followers,

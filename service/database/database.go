@@ -41,6 +41,7 @@ type AppDatabase interface {
 	CreateUser(name string) error
 	SetMyNickname(newName string, uid int) error
 	GetId(username string) (int, error)
+	GetUsername(uid int) (string, error)
 	FollowUser(uid int, followedUid int) error
 	GetFollowing(uid int) ([]int, error)
 	GetFollowers(followedUid int) ([]int, error)
