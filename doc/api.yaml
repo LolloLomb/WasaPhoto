@@ -80,9 +80,6 @@ components:
     user:
       type: object
       description: User infos
-      required:
-        - name
-        - id
       properties:
         name:
           type: string
@@ -163,16 +160,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              description: username schemas
-              properties:
-                username:
-                  type: string
-                  description: User name structure as its defined in user/properties/name
-                  pattern: '[a-zA-Z0-9]'
-                  example: 'Maria'
-                  minLength: 3
-                  maxLength: 16
+              $ref: "#/components/schemas/user"
         required: true
       
       responses:
@@ -206,12 +194,7 @@ paths:
               description: request object
               properties:
                 newUsername:
-                  type: string
-                  description: User name structure as its defined in user/properties/name
-                  pattern: '[a-zA-Z0-9]'
-                  example: 'Maria'
-                  minLength: 3
-                  maxLength: 16
+                  $ref: "#/components/schemas/user/properties/name"
         required: true
       responses:
         '200':
@@ -240,12 +223,7 @@ paths:
               description: request object
               properties:
                 username:
-                  type: string
-                  description: User name structure as its defined in user/properties/name
-                  pattern: '[a-zA-Z0-9]'
-                  example: 'Maria'
-                  minLength: 3
-                  maxLength: 16
+                  $ref: "#/components/schemas/user/properties/name"
         required: true
       responses:
         '201':
@@ -337,12 +315,7 @@ paths:
               description: request object
               properties:
                 username:
-                  type: string
-                  description: User name structure as its defined in user/properties/name
-                  pattern: '[a-zA-Z0-9]'
-                  example: 'Maria'
-                  minLength: 3
-                  maxLength: 16
+                  $ref: "#/components/schemas/user/properties/name"
         required: true
       responses:
         '201':
@@ -462,12 +435,7 @@ paths:
               description: username
               properties:
                 username:
-                  type: string
-                  description: User name
-                  pattern: '[a-zA-Z0-9]'
-                  example: 'Maria'
-                  minLength: 3
-                  maxLength: 16
+                  $ref: "#/components/schemas/user/properties/name"
         required: true
       responses:
         '201':
