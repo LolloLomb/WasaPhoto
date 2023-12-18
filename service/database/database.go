@@ -43,6 +43,7 @@ type AppDatabase interface {
 	GetId(username string) (int, error)
 	FollowUser(uid int, followedUid int) error
 	GetFollowing(uid int) ([]int, error)
+	GetFollowers(followedUid int) ([]int, error)
 	UnfollowUser(uid int, followedUid int) error
 	BanUser(uid int, bannedUid int) error
 	IdExists(uid int) (bool, error)
@@ -51,6 +52,11 @@ type AppDatabase interface {
 	PhotoIdExists(photoId int) (bool, error)
 	LikePhoto(uid int, photoId int) error
 	UnlikePhoto(uid int, photoId int) error
+	CommentPhoto(uid int, photoId int, text string) error
+	UncommentPhoto(photoId int, commentId int) error
+	PostsAmount(uid int) (int, error)
+	DeletePhoto(photoId int) error
+	GetStream(uid int) ([]int, error)
 	Ping() error
 }
 
@@ -76,24 +82,6 @@ func New(db *sql.DB) (AppDatabase, error) {
 		}
 	}
 
-	// TESTS
-	/* result, err := db.Exec("INSERT INTO user (uid, username) VALUES (11, 'antonio');")
-	if err != nil {
-		log.Fatal(err)
-	}
-	affectedRows, err := result.RowsAffected()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Numero di righe interessate: %d\n", affectedRows)
-	rows, err := db.Query("SELECT uid,username FROM user WHERE username = 'antonio';")
-	fmt.Println(err)
-	var uid string
-	var username string
-	for rows.Next() {
-		rows.Scan(&uid, &username)
-		fmt.Println(uid, username)
-	}*/
 	return &appdbimpl{
 		c: db,
 	}, nil
@@ -117,21 +105,13 @@ func createTables(db *sql.DB) error {
 					upload_date DATETIME, 
 					uid INTEGER, 
 					FOREIGN KEY(uid) REFERENCES user(uid) ON DELETE CASCADE);`
-	// HO RIMOSSO URL DAL DATABASE PER ORA url TEXT
-
-	/*  questo è stato rimosso dalla documentazione api per lo schema photo
-	url:
-		type: string
-		description: photo url
-		format: binary
-	*/
 	_, err = db.Exec(photoQuery)
 	if err != nil {
 		return fmt.Errorf("error creating photo structure: %w", err)
 	}
 	commentQuery := `CREATE TABLE IF NOT EXISTS comment (commentId INTEGER PRIMARY KEY AUTOINCREMENT,
 					commentText TEXT,
-					upload_date DATETIME,
+					uploadDate DATETIME,
 					uid INTEGER, 
 					photoId INTEGER,
 					FOREIGN KEY(uid) REFERENCES user(uid) ON DELETE CASCADE,

@@ -26,7 +26,7 @@ type WebAPIConfiguration struct {
 	}
 	Debug bool
 	DB    struct {
-		Filename string `conf:"default:/home/cc/Desktop/FC/fantastic-coffee-decaffeinated/test.db"`
+		Filename string `conf:"default:/home/cc/Desktop/test/WasaPhoto/test.db"`
 	}
 }
 

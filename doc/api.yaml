@@ -30,50 +30,56 @@ components:
       in: path
       description: Photo id
       schema:
-        $ref: "#/components/schemas/photo/properties/id"
+        type: integer
+        description: Photo id
+        example: 12
       required: true
     comment_id:
       name: comment_id
       description: Comment id
       in: path
       schema:
-        $ref: "#/components/schemas/comment/properties/id"
+        type: integer
+        description: Comment id
+        example: 12
       required: true
 
   schemas:
     photo:
-      required:
-        - id
-        - uid_owner
-        - upload_date
-        - photo_data
       type: object
       description: Photo Object
       properties:
-        id:
-          type: integer
-          description: Photo id
-          example: 12
-        upload_date:
-          type: string
-          description: Upload date
-          format: date-time
-          pattern: '(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z'
-          example: "2017-07-21T17:32:28Z"
-          minLength: 20
-          maxLength: 20
         photo_data:
           type: string
           format: binary
           description: photo binary data
           minLength: 0
           maxLength: 100
-        uid_owner:
-          $ref: "#/components/schemas/user/properties/id"
-
-    user:
+        username_owner:
+          $ref: "#/components/schemas/user/properties/name"
+    profile:
       type: object
       description: User profile infos
+      properties:
+        username:
+          $ref: "#/components/schemas/user/properties/name"
+        id:
+          $ref: "#/components/schemas/user/properties/id"
+        following:
+          type: integer
+          description: following amount
+          example: 12
+        followers:
+          type: integer
+          description: followers amount
+          example: 12
+        posts_amount:
+          type: integer
+          description: posts amount
+          example: 12
+    user:
+      type: object
+      description: User infos
       required:
         - name
         - id
@@ -92,10 +98,8 @@ components:
    
     comment:
       required:
-        - id
-        - uid_owner
         - text
-        - upload_date
+        - username_owner
       type: object
       description: Comment object
       properties:
@@ -106,20 +110,8 @@ components:
           example: "This is a comment!"
           minLength: 1
           maxLength: 150
-        id:
-          type: integer
-          description: Comment id
-          example: 12
-        upload_date:
-          type: string
-          description: Upload time of the comment
-          format: date-time
-          pattern: '(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z'
-          example: "2017-07-21T17:32:28Z"
-          minLength: 20
-          maxLength: 20
-        uid_owner:
-          $ref: "#/components/schemas/user/properties/id"
+        username_owner:
+          $ref: "#/components/schemas/user/properties/name"
   
   responses:
     ServerDown:
@@ -397,22 +389,34 @@ paths:
       security:
         - bearerAuth: [] 
         
-  /user/{uid}/profile:
+  /profile:
     #getUserProfile
-    parameters:
-        - $ref: "#/components/parameters/uid"
     get:
       summary: Get user profile info
       description: Get user profile info by user id
       operationId: getUserProfile
       tags: ["User"]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              description: request object
+              properties:
+                username:
+                  type: string
+                  description: User name structure as its defined in user/properties/name
+                  pattern: '[a-zA-Z0-9]'
+                  example: 'Maria'
+                  minLength: 3
+                  maxLength: 16
       responses:
         '200':
-          description: Return stream of photo from following
+          description: Return user profile
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/user"
+                $ref: "#/components/schemas/profile"
         '400':
           $ref: "#/components/responses/BadRequest"
         '500':
@@ -422,8 +426,6 @@ paths:
           
   /photo:
     # uploadPhoto
-    parameters:
-        - $ref: "#/components/parameters/uid"
     post:
       tags: ["User", "Photo"]
       operationId: uploadPhoto
@@ -433,23 +435,7 @@ paths:
         content:
           application/json:
             schema:
-              description: Image content
-              type: object
-              properties:
-                photo_data:
-                  description: "Raw data of the photo"
-                  type: string
-                  minLength: 0
-                  maxLength: 100
-                  format: binary
-                  example: "010110010"
-                username_owner:
-                  description: owner of the photo
-                  type: string
-                  minLength: 3
-                  maxLength: 16
-                  pattern: '[a-zA-Z0-9]'
-                  example: 'Maria'
+              $ref: "#/components/schemas/photo"
         required: true
       responses:
         '201':
@@ -475,7 +461,6 @@ paths:
     # likePhoto
     parameters:
       - $ref: "#/components/parameters/photo_id"
-      - $ref: "#/components/parameters/uid"
     post:
       summary: Put like to a photo
       description: Put like to a photo
@@ -549,23 +534,7 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              description: comment object
-              properties:
-                text:
-                  type: string
-                  description: 'Text of a comment'
-                  pattern: '^.{3,150}$'
-                  example: "This is a comment!"
-                  minLength: 1
-                  maxLength: 150
-                username_owner:
-                  type: string
-                  description: User name
-                  pattern: '[a-zA-Z0-9]'
-                  example: 'Maria'
-                  minLength: 3
-                  maxLength: 16
+              $ref: "#/components/schemas/comment"
         required: true
       responses:
         '201':

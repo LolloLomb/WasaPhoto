@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 
 	// "log"
 	"net/http"
@@ -23,6 +24,14 @@ type User struct {
 type Photo struct {
 	Content string `json:"photo_data"`
 	Owner   string `json:"username_owner"`
+}
+
+type Profile struct {
+	Username    string `json:"username"`
+	Id          int    `json:"id"`
+	Following   []int  `json:"following"`
+	Followers   []int  `json:"followers"`
+	PostsAmount int    `json:"postsAmount"`
 }
 
 type Comment struct {
@@ -275,6 +284,87 @@ func (rt *_router) unbanUser(w http.ResponseWriter, r *http.Request, ps httprout
 
 	// Invia la risposta JSON
 	sendJSONResponse(w, response, http.StatusOK)
+}
+
+func (rt *_router) getUserProfile(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	var requestBody User
+
+	uid, err := rt.db.GetId(requestBody.Content)
+
+	if err != nil {
+		response := Response{ErrorMessage: "Username non valido"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+	// voglio following, follower, username, numero di foto caricate
+	following, err := rt.db.GetFollowing(uid)
+
+	if err != nil {
+		response := Response{ErrorMessage: "Errore server, impossibile richiedere lista following"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+
+	followers, err := rt.db.GetFollowers(uid)
+
+	if err != nil {
+		response := Response{ErrorMessage: "Errore server, impossibile richiedere lista followers"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+
+	postsAmount, err := rt.db.PostsAmount(uid)
+
+	if err != nil {
+		response := Response{ErrorMessage: "Errore server, impossibile richiedere il numero di post"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+
+	profile := Profile{
+		Username:    requestBody.Content,
+		Id:          uid,
+		Following:   following,
+		Followers:   followers,
+		PostsAmount: postsAmount,
+	}
+
+	// Creare una risposta JSON di successo con il messaggio di log
+	jsonData, err := json.MarshalIndent(profile, "", "  ")
+	if err != nil {
+		response := Response{ErrorMessage: "Errore server, impossibile codificare json di risposta"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+	response := Response{SuccessMessage: fmt.Sprintf("Profile returned successfully: %v", jsonData)}
+
+	// Invia la risposta JSON
+	sendJSONResponse(w, response, http.StatusOK)
+}
+
+func (rt *_router) getMyStream(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	uid, _ := strconv.Atoi(ps.ByName("uid"))
+
+	photosId, err := rt.db.GetStream(uid)
+
+	if err != nil {
+		response := Response{ErrorMessage: "Errore server"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+	// Creare una risposta JSON di successo con il messaggio di log
+	for _, id := range photosId {
+		// Costruisci il percorso del file
+		filename := fmt.Sprintf("%d.png", id)
+		filePath := filepath.Join("media/", filename)
+
+		// Servi il file usando http.ServeFile
+		response := Response{SuccessMessage: "Stream OK"}
+		sendJSONResponse(w, response, http.StatusOK)
+		http.ServeFile(w, r, filePath)
+		return
+	}
+
 }
 
 func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {

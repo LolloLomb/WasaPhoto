@@ -65,7 +65,7 @@ func (rt *_router) uploadPhoto(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	path := "photos/" + strconv.Itoa(photoId) + ".png"
+	path := "media/" + strconv.Itoa(photoId) + ".png"
 
 	err = saveImageLocally(imageData, path)
 
@@ -126,6 +126,48 @@ func (rt *_router) likePhoto(w http.ResponseWriter, r *http.Request, ps httprout
 	sendJSONResponse(w, response, http.StatusOK)
 }
 
+func (rt *_router) commentPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	// Decodifica il corpo JSON della richiesta in una struttura
+	var requestBody Comment
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		// Gestisci errori di decodifica JSON
+		response := Response{ErrorMessage: "Errore durante la decodifica del corpo JSON"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	uid, err := rt.db.GetId(requestBody.Owner)
+	if err != nil {
+		response := Response{ErrorMessage: "Username non valido"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	text := requestBody.Text
+
+	photoId, _ := strconv.Atoi(ps.ByName("photo_id"))
+	valid, _ := rt.db.PhotoIdExists(photoId)
+	if !valid {
+		response := Response{ErrorMessage: "PhotoId non valido"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	err = rt.db.CommentPhoto(uid, photoId, text)
+
+	if err != nil {
+		response := Response{ErrorMessage: "Errore interno del server"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+
+	// Creare una risposta JSON di successo con il messaggio di log
+	response := Response{SuccessMessage: fmt.Sprintf("Commento aggiunto con successo alla foto con id: %d", photoId)}
+
+	// Invia la risposta JSON
+	sendJSONResponse(w, response, http.StatusOK)
+}
+
 func (rt *_router) unlikePhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 
 	uid, _ := strconv.Atoi(ps.ByName("uid"))
@@ -151,6 +193,63 @@ func (rt *_router) unlikePhoto(w http.ResponseWriter, r *http.Request, ps httpro
 	sendJSONResponse(w, response, http.StatusOK)
 }
 
+func (rt *_router) uncommentPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+
+	photoId, _ := strconv.Atoi(ps.ByName("photo_id"))
+	commentId, _ := strconv.Atoi(ps.ByName("comment_id"))
+
+	err := rt.db.UncommentPhoto(photoId, commentId)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		response := Response{ErrorMessage: "Il tuo like non era presente per questa foto"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	if err != nil {
+		response := Response{ErrorMessage: "Errore server"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+	// Creare una risposta JSON di successo con il messaggio di log
+	response := Response{SuccessMessage: fmt.Sprintf("Comment successfully removed from photo: %d", photoId)}
+
+	// Invia la risposta JSON
+	sendJSONResponse(w, response, http.StatusOK)
+}
+
+func (rt *_router) deletePhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+
+	photoId, _ := strconv.Atoi(ps.ByName("photo_id"))
+
+	valid, err := rt.db.PhotoIdExists(photoId)
+
+	if errors.Is(err, database.ErrPhotoDontExists) || !valid {
+		response := Response{ErrorMessage: "PhotoId non valido"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	if err != nil {
+		response := Response{ErrorMessage: "Errore server"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+
+	err = rt.db.DeletePhoto(photoId)
+
+	if err != nil {
+		response := Response{ErrorMessage: "Errore server"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+
+	response := Response{SuccessMessage: fmt.Sprintf("Photo successfully removed: %d", photoId)}
+
+	// Invia la risposta JSON
+	sendJSONResponse(w, response, http.StatusOK)
+}
+
 func saveImageLocally(imageData []byte, filePath string) error {
 	// Apri il file in modalità di scrittura
 	file, err := os.Create(filePath)
@@ -165,6 +264,6 @@ func saveImageLocally(imageData []byte, filePath string) error {
 		return err
 	}
 
-	fmt.Printf("Immagine salvata correttamente: %s\n", filePath)
+	// fmt.Printf("Immagine salvata correttamente: %s\n", filePath)
 	return nil
 }

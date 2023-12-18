@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -14,6 +15,8 @@ var ErrAlreadyFollowing error = errors.New("already following")
 var ErrAlreadyBanned error = errors.New("already banned")
 var ErrCannotBanHimself error = errors.New("user cannot ban himself")
 var ErrAlreadyLiked error = errors.New("already liked")
+var ErrPhotoDontExists error = errors.New("photo do not exists")
+var ErrCommentDontExists error = errors.New("error do not exists")
 
 func (db *appdbimpl) CreateUser(username string) error {
 	flag, _ := db.UsernameExists(username)
@@ -51,7 +54,7 @@ func (db *appdbimpl) getLastPhotoId(uid int) (int, error) {
 	// Eseguire la query
 	rows, err := db.c.Query(query, uid)
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
 	defer rows.Close()
 
@@ -61,6 +64,15 @@ func (db *appdbimpl) getLastPhotoId(uid int) (int, error) {
 		if err := rows.Scan(&lastPhotoID); err != nil {
 			return 0, err
 		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+
+	// Se non ci sono errori
+	if lastPhotoID != -1 {
+		return lastPhotoID, nil
 	}
 
 	// Se non ci sono risultati (tabella vuota), restituire un valore predefinito o un errore
@@ -159,6 +171,13 @@ func (db *appdbimpl) PhotoIdExists(photoId int) (bool, error) {
 	return exists, err
 }
 
+func (db *appdbimpl) CommentIdExists(commentId int) (bool, error) {
+	var exists bool
+	query := "SELECT EXISTS (SELECT 1 FROM comment WHERE commentId = ?)"
+	err := db.c.QueryRow(query, commentId).Scan(&exists)
+	return exists, err
+}
+
 func (db *appdbimpl) BanExists(uid int, bannedUid int) (bool, error) {
 	var exists bool
 	query := "SELECT EXISTS (SELECT 1 FROM ban WHERE uid = ? AND bannedUid = ?)"
@@ -199,6 +218,32 @@ func (db *appdbimpl) GetFollowing(uid int) ([]int, error) {
 			return nil, err
 		}
 		value, _ := strconv.Atoi(followedUid)
+		array = append(array, value)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return array, nil
+}
+
+func (db *appdbimpl) GetFollowers(followedUid int) ([]int, error) {
+	query := "SELECT uid FROM follow WHERE followedUid=?;"
+	rows, err := db.c.Query(query, followedUid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var array []int
+
+	for rows.Next() {
+		var uid string
+		if err := rows.Scan(&uid); err != nil {
+			return nil, err
+		}
+		value, _ := strconv.Atoi(uid)
 		array = append(array, value)
 	}
 
@@ -318,4 +363,123 @@ func (db *appdbimpl) UnbanUser(uid int, bannedUid int) error {
 	}
 
 	return nil
+}
+
+func (db *appdbimpl) CommentPhoto(uid int, photoId int, text string) error {
+	// Inserisci la tupla nella tabella comment
+	formattedTime := time.Now().Format("2006-01-02T15:04:05Z")
+	query := "INSERT INTO comment (uid, commentText, photoId, uploadDate) VALUES (?,?,?);"
+	_, err := db.c.Exec(query, uid, text, photoId, formattedTime)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *appdbimpl) UncommentPhoto(photoId int, commentId int) error {
+	// gli errori possibili sono 1 non esiste la foto, 2 non esiste il commento
+	valid, _ := db.PhotoIdExists(photoId)
+	if !valid {
+		return ErrPhotoDontExists
+	}
+	valid, _ = db.CommentIdExists(commentId)
+	if !valid {
+		return ErrCommentDontExists
+	}
+
+	query := "DELETE FROM comment WHERE commentId = ?;"
+	result, err := db.c.Exec(query, commentId)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		// Nessuna riga è stata eliminata, quindi l'entry non è stata trovata
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (db *appdbimpl) DeletePhoto(photoId int) error {
+	// gli errori possibili sono 1 non esiste la foto
+	valid, _ := db.PhotoIdExists(photoId)
+	if !valid {
+		return ErrPhotoDontExists
+	}
+
+	query := "DELETE FROM photo WHERE photoId = ?;"
+	result, err := db.c.Exec(query, photoId)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		// Nessuna riga è stata eliminata, quindi l'entry non è stata trovata
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (db *appdbimpl) PostsAmount(uid int) (int, error) {
+	// restituisce il numero di post di un utente dato un uid
+	valid, err := db.IdExists(uid)
+	if !valid {
+		return -1, err
+	}
+
+	query := fmt.Sprintf("SELECT COUNT(*) FROM photo WHERE uid = '%s'", strconv.Itoa(uid))
+
+	// Esegui la query
+	var conteggio int
+	err = db.c.QueryRow(query).Scan(&conteggio)
+	if err != nil {
+		return -1, err
+	}
+	return conteggio, err
+}
+
+func (db *appdbimpl) GetStream(uid int) ([]int, error) {
+	orderedPhotos, err := db.getOrderedPhotos(uid)
+	if err != nil {
+		return nil, err
+	}
+	return orderedPhotos, nil
+}
+
+func (db *appdbimpl) getOrderedPhotos(uid int) ([]int, error) {
+	query := `SELECT * FROM photo WHERE uid IN (SELECT followedUid FROM follow WHERE uid = ?) ORDER BY upload_date DESC LIMIT 10`
+
+	rows, err := db.c.Query(query, uid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orderedPhotos []int
+
+	for rows.Next() {
+		var photo int
+		err := rows.Scan(photo)
+		if err != nil {
+			return nil, err
+		}
+		orderedPhotos = append(orderedPhotos, photo)
+	}
+
+	return orderedPhotos, nil
 }
