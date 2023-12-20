@@ -110,20 +110,19 @@ func (db *appdbimpl) UsernameExists(username string) (bool, error) {
 func (db *appdbimpl) GetId(username string) (int, error) {
 	query := "SELECT uid FROM user WHERE username = ?;"
 	row := db.c.QueryRow(query, username)
-	var uid string
+	var uid int
 	err := row.Scan(&uid)
 	if err != nil {
 		return 0, err
 	}
-	result, _ := strconv.Atoi(uid)
-	return result, err
+	return uid, err
 }
 
 func (db *appdbimpl) GetUsername(uid int) (string, error) {
 	query := "SELECT username FROM user WHERE uid = ?;"
 	row := db.c.QueryRow(query, uid)
 	var username string
-	err := row.Scan(&uid)
+	err := row.Scan(&username)
 	if err != nil {
 		return "", err
 	}
@@ -197,7 +196,7 @@ func (db *appdbimpl) BanExists(uid int, bannedUid int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
+	//fmt.Print(exists, uid, bannedUid)
 	return exists, nil
 }
 

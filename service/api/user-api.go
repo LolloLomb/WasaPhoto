@@ -52,9 +52,20 @@ type Response struct {
 	ErrorMessage   string `json:"error,omitempty"`
 }
 
+var ErrForbidden error = errors.New("unauthorized")
+
 func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Decodifica il corpo JSON della richiesta in una struttura
 	var requestBody NewUsername
+	auth := r.Header.Get("Authorization")
+	uid, _ := strconv.Atoi(ps.ByName("uid"))
+	u, _ := rt.db.GetUsername(uid)
+	if u != auth || auth == "" {
+		response := Response{ErrorMessage: ErrForbidden.Error()}
+		sendJSONResponse(w, response, http.StatusForbidden)
+		return
+	}
+
 	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		// Gestisci errori di decodifica JSON
 		response := Response{ErrorMessage: "Errore durante la decodifica del corpo JSON"}
@@ -65,11 +76,10 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	// Estrai il nuovo username dalla struttura
 	newUsername := requestBody.Content
 	if newUsername == "" {
-		response := Response{ErrorMessage: "Error occured while decoding JSON"}
+		response := Response{ErrorMessage: "Error occured while decoding JSON newUsername: value not found"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
-	uid, _ := strconv.Atoi(ps.ByName("uid"))
 	// Chiamare il pacchetto del database per impostare il nuovo username
 	err := rt.db.SetMyNickname(newUsername, uid)
 	if errors.Is(err, database.ErrNameAlreadyTaken) {
@@ -99,14 +109,14 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	if err := json.Unmarshal(bytes, &requestBody); err != nil {
 		// if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		// Gestisci errori di decodifica JSON
-		response := Response{ErrorMessage: "Error occured while decoding JSON"}
+		response := Response{ErrorMessage: "Error occured while decoding JSON1"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
 
 	username := requestBody.Content
 	if username == "" {
-		response := Response{ErrorMessage: "Error occured while decoding JSON"}
+		response := Response{ErrorMessage: "Error occured while decoding JSON2"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
@@ -138,6 +148,16 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.P
 func (rt *_router) followUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Decodifica il corpo JSON della richiesta in una struttura
 	var requestBody User
+	auth := r.Header.Get("Authorization")
+	uid, _ := strconv.Atoi(ps.ByName("uid"))
+	u, _ := rt.db.GetUsername(uid)
+
+	if u != auth || auth == "" {
+		response := Response{ErrorMessage: ErrForbidden.Error()}
+		sendJSONResponse(w, response, http.StatusForbidden)
+		return
+	}
+
 	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		// Gestisci errori di decodifica JSON
 		response := Response{ErrorMessage: "Errore durante la decodifica del corpo JSON"}
@@ -145,7 +165,6 @@ func (rt *_router) followUser(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	uid, _ := strconv.Atoi(ps.ByName("uid"))
 	valid, _ := rt.db.IdExists(uid)
 	// Chiamo il database
 	if !valid {
@@ -158,6 +177,14 @@ func (rt *_router) followUser(w http.ResponseWriter, r *http.Request, ps httprou
 	if err != nil {
 		response := Response{ErrorMessage: "Username non valido"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	valid, _ = rt.db.BanExists(uid, followedUid)
+	if valid {
+		// funziona al contrario perchè true vuol dire che è stato bannato
+		response := Response{ErrorMessage: "Non puoi seguire un utente che hai bannato"}
+		sendJSONResponse(w, response, http.StatusForbidden)
 		return
 	}
 
@@ -181,7 +208,7 @@ func (rt *_router) followUser(w http.ResponseWriter, r *http.Request, ps httprou
 	response := Response{SuccessMessage: fmt.Sprintf("User followed successfully: %d", followedUid)}
 
 	// Invia la risposta JSON
-	sendJSONResponse(w, response, http.StatusOK)
+	sendJSONResponse(w, response, http.StatusCreated)
 }
 
 func (rt *_router) unfollowUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
@@ -259,7 +286,7 @@ func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter
 	response := Response{SuccessMessage: fmt.Sprintf("Utente bannato con successo: %d", uidBanned)}
 
 	// Invia la risposta JSON
-	sendJSONResponse(w, response, http.StatusOK)
+	sendJSONResponse(w, response, http.StatusCreated)
 }
 
 func (rt *_router) unbanUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {

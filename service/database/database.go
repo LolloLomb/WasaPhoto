@@ -47,6 +47,7 @@ type AppDatabase interface {
 	GetFollowers(followedUid int) ([]int, error)
 	UnfollowUser(uid int, followedUid int) error
 	BanUser(uid int, bannedUid int) error
+	BanExists(uid int, bannedUid int) (bool, error)
 	IdExists(uid int) (bool, error)
 	UnbanUser(uid int, bannedUid int) error
 	CreatePhoto(uid int) (int, error)
