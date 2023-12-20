@@ -3,7 +3,7 @@ Share your flash!
 
 ## v2.0.2 Changelog   
 Implemented all methods   
-Introduced /profile path
+Introduced /profile path   
 Fixed unused components warnings   
 Fixed rows.Err() checks   
 TODO: Testing   
