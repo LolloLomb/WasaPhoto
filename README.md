@@ -1,6 +1,17 @@
 # WasaPhoto
 Share your flash!   
 
+## v2.0.4   
+Utils added   
+All responses has been added   
+Fixed rows.Err() checks   
+Fixed comments   
+TODO: Prepare DB for testing   
+TODO: Test responses   
+
+## v2.0.3   
+Authorization Implemented   
+
 ## v2.0.2 Changelog   
 Implemented all methods   
 Introduced /profile path   
@@ -40,36 +51,22 @@ Fixed reference in methods' requestBody
    
 ## v1.0.1 Changelog
 Added Tags Array  
----DONE  
 Common path parameters fixed  
----DONE  
 Defined pattern, minLength, maxLength  
----DONE  
 Added operation descriptions  
----DONE  
 Added properties description  
----DONE  
 Example now matching pattern  
----DONE  
 Binary values use substituted with url for png  
----DONE  
 OperationId Checked  
----DONE  
 Fixed likes' design  
----UNDONE (POSSIBLE BRENCH TO REDESIGN)  
 Added Security scheme  
----DONE  
 minItems and maxItems added to array use  
----DONE  
 snake_case notation  
----DONE  
-  
--For security reasons and according to IBM validation standards all methods that should return an array will return a JSON containing an object type resource with only
-"list" property, built as an array of objects.  
--setMyUserName now uses put method instead of patch method  
--followUser now take identifier instead of username as schema  
--Every parameter/schema/property has now its own description  
--Change from /user/{uid}/following/stream to /user/{uid}/stream  
--Change from followed_uid to following_uid  
--getUserProfile now operate in /user/{uid} and profile schema has new property "identifier"  
+For security reasons and according to IBM validation standards all methods that should return an array will return a JSON containing an object type resource with only "list" property, built as an array of objects.  
+setMyUserName now uses put method instead of patch method  
+followUser now take identifier instead of username as schema  
+Every parameter/schema/property has now its own description  
+Change from /user/{uid}/following/stream to /user/{uid}/stream  
+Change from followed_uid to following_uid  
+getUserProfile now operate in /user/{uid} and profile schema has new property "identifier"  
 

@@ -196,7 +196,7 @@ func (db *appdbimpl) BanExists(uid int, bannedUid int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	//fmt.Print(exists, uid, bannedUid)
+	// fmt.Print(exists, uid, bannedUid)
 	return exists, nil
 }
 
@@ -471,6 +471,34 @@ func (db *appdbimpl) GetStream(uid int) ([]int, error) {
 	return orderedPhotos, nil
 }
 
+func (db *appdbimpl) IsPhotoOwner(uid int, photoId int) (bool, error) {
+	var realOwner string
+	query := "SELECT uid FROM photo WHERE photoId = ?;"
+	err := db.c.QueryRow(query, photoId).Scan(&realOwner)
+	if err != nil {
+		return false, err
+	}
+	realOwnerId, _ := db.GetId(realOwner)
+	if uid == realOwnerId {
+		return true, err
+	}
+	return false, nil
+}
+
+func (db *appdbimpl) IsCommentOwner(uid int, photoId int) (bool, error) {
+	var realOwner string
+	query := "SELECT uid FROM comment WHERE commentId = ?;"
+	err := db.c.QueryRow(query, photoId).Scan(&realOwner)
+	if err != nil {
+		return false, err
+	}
+	realOwnerId, _ := db.GetId(realOwner)
+	if uid == realOwnerId {
+		return true, err
+	}
+	return false, nil
+}
+
 func (db *appdbimpl) getOrderedPhotos(uid int) ([]int, error) {
 	query := `SELECT * FROM photo WHERE uid IN (SELECT followedUid FROM follow WHERE uid = ?) ORDER BY upload_date DESC LIMIT 10`
 
@@ -489,6 +517,10 @@ func (db *appdbimpl) getOrderedPhotos(uid int) ([]int, error) {
 			return nil, err
 		}
 		orderedPhotos = append(orderedPhotos, photo)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return orderedPhotos, nil

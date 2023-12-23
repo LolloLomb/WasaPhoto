@@ -36,11 +36,20 @@ func (rt *_router) uploadPhoto(w http.ResponseWriter, r *http.Request, ps httpro
 
 	// Ottieni i dati base64 dell'immagine
 	photoData := requestBody.Content
-	username := requestBody.Owner
-	uid, err := rt.db.GetId(username)
+	owner := requestBody.Owner
+	uid, err := rt.db.GetId(owner)
+
+	auth := r.Header.Get("Authorization")
+
+	if owner != auth || auth == "" {
+		response := Response{ErrorMessage: ErrForbidden.Error()}
+		sendJSONResponse(w, response, http.StatusForbidden)
+		return
+	}
+
 	if err != nil {
-		response := Response{ErrorMessage: "Errore interno in fase di accesso all'id associato all'utente"}
-		sendJSONResponse(w, response, http.StatusInternalServerError)
+		response := Response{ErrorMessage: "Utente non trovato"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
 
@@ -54,11 +63,11 @@ func (rt *_router) uploadPhoto(w http.ResponseWriter, r *http.Request, ps httpro
 
 	// Salva l'immagine su disco (in questo caso, come file PNG)
 	photoId, err := rt.db.CreatePhoto(uid)
-	if photoId < 0 {
+	/* if photoId < 0 {
 		response := Response{ErrorMessage: "photoId < 0 from database has been returned"}
 		sendJSONResponse(w, response, http.StatusInternalServerError)
 		return
-	}
+	}*/
 	if err != nil {
 		response := Response{ErrorMessage: "Errore durante la creazione della foto nel database"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
@@ -90,7 +99,16 @@ func (rt *_router) likePhoto(w http.ResponseWriter, r *http.Request, ps httprout
 		return
 	}
 
-	uid, err := rt.db.GetId(requestBody.Content)
+	likedUid, err := rt.db.GetId(requestBody.Content)
+	// vedere se l'utente è autorizzato e poi 2 se il suo username esiste
+	auth := r.Header.Get("Authorization")
+	if auth != requestBody.Content || auth == "" {
+		response := Response{ErrorMessage: ErrForbidden.Error()}
+		sendJSONResponse(w, response, http.StatusForbidden)
+		return
+	}
+
+	// 2
 	if err != nil {
 		response := Response{ErrorMessage: "Username non valido"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
@@ -105,7 +123,15 @@ func (rt *_router) likePhoto(w http.ResponseWriter, r *http.Request, ps httprout
 		return
 	}
 
-	err = rt.db.LikePhoto(uid, photoId)
+	// ora devo vedere se sono il proprietario
+	flag, _ := rt.db.IsPhotoOwner(likedUid, photoId)
+	if flag {
+		response := Response{ErrorMessage: "Non puoi mettere like ad una tua foto"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	err = rt.db.LikePhoto(likedUid, photoId)
 
 	if errors.Is(err, database.ErrAlreadyLiked) {
 		response := Response{ErrorMessage: "Hai già messo like alla foto"}
@@ -123,7 +149,7 @@ func (rt *_router) likePhoto(w http.ResponseWriter, r *http.Request, ps httprout
 	response := Response{SuccessMessage: fmt.Sprintf("Like aggiunto con successo alla foto con id: %d", photoId)}
 
 	// Invia la risposta JSON
-	sendJSONResponse(w, response, http.StatusOK)
+	sendJSONResponse(w, response, http.StatusCreated)
 }
 
 func (rt *_router) commentPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
@@ -133,6 +159,13 @@ func (rt *_router) commentPhoto(w http.ResponseWriter, r *http.Request, ps httpr
 		// Gestisci errori di decodifica JSON
 		response := Response{ErrorMessage: "Errore durante la decodifica del corpo JSON"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+	// verificare che sei l'autore del commento che stai inviando
+	auth := r.Header.Get("Authorization")
+	if requestBody.Owner != auth || auth == "" {
+		response := Response{ErrorMessage: ErrForbidden.Error()}
+		sendJSONResponse(w, response, http.StatusForbidden)
 		return
 	}
 
@@ -165,13 +198,22 @@ func (rt *_router) commentPhoto(w http.ResponseWriter, r *http.Request, ps httpr
 	response := Response{SuccessMessage: fmt.Sprintf("Commento aggiunto con successo alla foto con id: %d", photoId)}
 
 	// Invia la risposta JSON
-	sendJSONResponse(w, response, http.StatusOK)
+	sendJSONResponse(w, response, http.StatusCreated)
 }
 
 func (rt *_router) unlikePhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 
 	uid, _ := strconv.Atoi(ps.ByName("uid"))
 	photoId, _ := strconv.Atoi(ps.ByName("photo_id"))
+
+	auth := r.Header.Get("Authorization")
+	// devo vedere se coincide con l'uid
+	authUid, _ := rt.db.GetId(auth)
+	if authUid != uid || auth == "" {
+		response := Response{ErrorMessage: ErrForbidden.Error()}
+		sendJSONResponse(w, response, http.StatusForbidden)
+		return
+	}
 
 	err := rt.db.UnlikePhoto(uid, photoId)
 
@@ -198,10 +240,26 @@ func (rt *_router) uncommentPhoto(w http.ResponseWriter, r *http.Request, ps htt
 	photoId, _ := strconv.Atoi(ps.ByName("photo_id"))
 	commentId, _ := strconv.Atoi(ps.ByName("comment_id"))
 
-	err := rt.db.UncommentPhoto(photoId, commentId)
+	// l'username esiste?
+	auth := r.Header.Get("Authorization")
+	authUid, err := rt.db.GetId(auth)
+	if authUid == 0 || auth == "" || err != nil {
+		response := Response{ErrorMessage: "Username non valido nell'header"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+	// sei il proprietario?
+	flag, _ := rt.db.IsPhotoOwner(authUid, photoId)
+	if !flag {
+		response := Response{ErrorMessage: ErrForbidden.Error()}
+		sendJSONResponse(w, response, http.StatusForbidden)
+		return
+	}
+
+	err = rt.db.UncommentPhoto(photoId, commentId)
 
 	if errors.Is(err, sql.ErrNoRows) {
-		response := Response{ErrorMessage: "Il tuo like non era presente per questa foto"}
+		response := Response{ErrorMessage: "Il tuo commento non era presente per questa foto"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
@@ -233,6 +291,17 @@ func (rt *_router) deletePhoto(w http.ResponseWriter, r *http.Request, ps httpro
 	if err != nil {
 		response := Response{ErrorMessage: "Errore server"}
 		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+
+	auth := r.Header.Get("Authorization")
+	authId, _ := rt.db.GetId(auth)
+
+	// devo vedere se authId e "uid" dell'owner nel db coincidono
+
+	if flag, _ := rt.db.IsPhotoOwner(authId, photoId); !flag {
+		response := Response{ErrorMessage: ErrForbidden.Error()}
+		sendJSONResponse(w, response, http.StatusForbidden)
 		return
 	}
 

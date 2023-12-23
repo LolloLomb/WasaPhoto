@@ -59,6 +59,9 @@ type AppDatabase interface {
 	PostsAmount(uid int) (int, error)
 	DeletePhoto(photoId int) error
 	GetStream(uid int) ([]int, error)
+	FollowExists(uid int, followedUid int) (bool, error)
+	IsPhotoOwner(uid int, photoId int) (bool, error)
+	IsCommentOwner(uid int, commentId int) (bool, error)
 	Ping() error
 }
 
