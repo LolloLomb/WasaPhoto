@@ -442,6 +442,41 @@ func (db *appdbimpl) DeletePhoto(photoId int) error {
 		return sql.ErrNoRows
 	}
 
+	// cancello commenti e like
+	query = "DELETE FROM comment WHERE photoId = ?;"
+	result, err = db.c.Exec(query, photoId)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err = result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		// Nessuna riga è stata eliminata, quindi l'entry non è stata trovata
+		return sql.ErrNoRows
+	}
+
+	query = "DELETE FROM like WHERE photoId = ?;"
+	result, err = db.c.Exec(query, photoId)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err = result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		// Nessuna riga è stata eliminata, quindi l'entry non è stata trovata
+		return sql.ErrNoRows
+	}
+
 	return nil
 }
 
