@@ -1,15 +1,20 @@
 import {createRouter, createWebHashHistory} from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import LoginView from '../views/LoginView.vue'
+/* ricorda sempre di importare con
+import ____View from '../views/____View.vue'
+*/
 
 const router = createRouter({
 	history: createWebHashHistory(import.meta.env.BASE_URL),
 	routes: [
-		/*
-		{path: '/', component: HomeView},
+		
+		{path: '/', component: LoginView},
+		{path: '/home', component: HomeView},
 		{path: '/link1', component: HomeView},
 		{path: '/link2', component: HomeView},
 		{path: '/some/:id/link', component: HomeView},
-		*/
+		
 	]
 })
 
