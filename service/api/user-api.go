@@ -101,7 +101,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	sendJSONResponse(w, response, http.StatusOK)
 }
 
-func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Decodifica il corpo JSON della richiesta in una struttura
 	var requestBody User
 	bytes, _ := io.ReadAll(r.Body)
@@ -127,7 +127,7 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	// log.Printf("%v", err)
 	if errors.Is(err, database.ErrUserAlreadyInTheDb) {
 		// Gestisci l'errore e invia una risposta JSON con il messaggio di errore
-		response := Response{SuccessMessage: fmt.Sprintf("Successful Login. ID: %v", id)}
+		response := Response{SuccessMessage: fmt.Sprintf("ID: %v", id)}
 		sendJSONResponse(w, response, 200)
 		return
 	}
@@ -139,7 +139,7 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.P
 
 	// Creare una risposta JSON di successo con il messaggio di log
 
-	response := Response{SuccessMessage: fmt.Sprintf("Utente creato con successo. ID: %v", id)}
+	response := Response{SuccessMessage: fmt.Sprintf("ID: %v", id)}
 
 	// Invia la risposta JSON
 	sendJSONResponse(w, response, http.StatusCreated)
@@ -420,19 +420,57 @@ func (rt *_router) getUserProfile(w http.ResponseWriter, r *http.Request, ps htt
 	sendJSONResponse(w, response, http.StatusOK)
 }
 
+func (rt *_router) searchUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	// controllare che sia loggato
+	/*
+		auth := r.Header.Get("Authorization")
+		if auth == "" {
+			response := Response{ErrorMessage: ErrForbidden.Error()}
+			sendJSONResponse(w, response, http.StatusForbidden)
+			return
+		}
+	*/
+
+	//u, _ := strconv.Atoi(auth)
+	u := 1
+
+	query := r.URL.Query().Get("username")
+
+	if query == "" {
+		response := Response{ErrorMessage: "Parametro di query mancante"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	users, err := rt.db.SearchUsers(u, query)
+	if err != nil {
+		response := Response{ErrorMessage: "Errore durante la ricerca nel database"}
+		sendJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+
+	if len(users) == 0 {
+		response := Response{ErrorMessage: "Nessun utente trovato"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	sendJSONResponse(w, users, http.StatusOK)
+}
+
 func (rt *_router) getMyStream(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	uid, _ := strconv.Atoi(ps.ByName("uid"))
+	uid := ps.ByName("uid")
 
 	// controllare che sia autorizzato
 	auth := r.Header.Get("Authorization")
-	u, _ := rt.db.GetUsername(uid)
-	if u != auth || auth == "" {
+	if uid != auth || auth == "" {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)
 		return
 	}
 
-	photosId, err := rt.db.GetStream(uid)
+	u, _ := strconv.Atoi(auth)
+	photosId, err := rt.db.GetStream(u)
 
 	if err != nil {
 		response := Response{ErrorMessage: "Errore server"}

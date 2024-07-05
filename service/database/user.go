@@ -535,7 +535,7 @@ func (db *appdbimpl) IsCommentOwner(uid int, photoId int) (bool, error) {
 }
 
 func (db *appdbimpl) getOrderedPhotos(uid int) ([]int, error) {
-	query := `SELECT * FROM photo WHERE uid IN (SELECT followedUid FROM follow WHERE uid = ?) ORDER BY upload_date DESC LIMIT 10`
+	query := `SELECT * FROM photo WHERE uid IN (SELECT followedUid FROM follow WHERE uid = ?) ORDER BY upload_date DESC`
 
 	rows, err := db.c.Query(query, uid)
 	if err != nil {
@@ -547,7 +547,7 @@ func (db *appdbimpl) getOrderedPhotos(uid int) ([]int, error) {
 
 	for rows.Next() {
 		var photo int
-		err := rows.Scan(photo)
+		err := rows.Scan(&photo)
 		if err != nil {
 			return nil, err
 		}
@@ -559,4 +559,41 @@ func (db *appdbimpl) getOrderedPhotos(uid int) ([]int, error) {
 	}
 
 	return orderedPhotos, nil
+}
+
+func (db *appdbimpl) SearchUsers(uidCaller int, query string) ([]string, error) {
+
+	var users []string
+
+	q := "SELECT username FROM user WHERE uid != ? AND username LIKE ?"
+	res, err := db.c.Query(q, uidCaller, "%"+query+"%")
+
+	if err != nil {
+		return nil, err
+	}
+
+	for res.Next() {
+		var user string
+		err := res.Scan(&user)
+		if err != nil {
+			return nil, err
+		}
+		bannedUid, _ := db.GetId(user)
+		flag, err := db.BanExists(bannedUid, uidCaller)
+
+		if err != nil {
+			return nil, err
+		}
+
+		if !flag {
+			users = append(users, user)
+		}
+	}
+
+	if res.Err() != nil {
+		return nil, err
+	}
+
+	res.Close()
+	return users, nil
 }

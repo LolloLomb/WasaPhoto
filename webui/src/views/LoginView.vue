@@ -1,75 +1,109 @@
-<template>
-    <div class="login-container">
-      <h2>Login a WasaPhoto</h2>
-      <form @submit.prevent="handleSubmit">
-        <input type="text" v-model="username" placeholder="Nome utente" required />
-        <input type="password" v-model="password" placeholder="Password" required />
-        <input type="submit" value="Login" />
-      </form>
-    </div>
-</template>
-  
 <script>
-  export default {
-    data() {
-      return {
-        username: '',
-        password: ''
-      };
-    },
-    methods: {
-      handleSubmit() {
-        // Aggiungi qui la logica per gestire il login
-        console.log('Username:', this.username);
-        console.log('Password:', this.password);
-      }
-    }
-  };
+export default {
+	data: function () {
+		return {
+			errormsg: null,
+			identifier: "",
+			remember: false,
+		}
+	},
+	methods: {
+		async login() {
+			this.errormsg = null;
+			try {
+				let response = await this.$axios.post("/session", {
+					username: this.identifier.trim()
+				});
+				let token = response.data.success.split('ID: ')[1];
+				localStorage.setItem('token', token);
+				localStorage.setItem('remember', this.remember);
+				this.$router.replace("/home")
+				this.$emit('updatedLoggedChild', true)
+
+			} catch (e) {
+				this.errormsg = e.toString();
+			}
+		},
+		toLowerCase(event) {
+			this.identifier = this.identifier.toLowerCase();
+		},
+	},
+
+	mounted() {
+		if (localStorage.getItem('remember') == "true") {
+			this.$router.replace("/home")
+		}
+
+		else {
+			localStorage.clear()
+      		this.$emit('logoutNavbar',false) 
+		}
+
+	}
+}
 </script>
-  
-<style scoped>
-  body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: #f0f0f0;
-    margin: 0;
-    font-family: Arial, sans-serif;
-  }
-  .login-container {
-    background-color: white;
-    border-radius: 15px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    padding: 30px;
-    max-width: 400px;
-    width: 100%;
-    text-align: center;
-  }
-  .login-container h2 {
-    margin-bottom: 20px;
-  }
-  .login-container form {
-    display: flex;
-    flex-direction: column;
-  }
-  .login-container input[type="text"],
-  .login-container input[type="password"] {
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-  .login-container input[type="submit"] {
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
-    background-color: #333;
-    color: white;
-    cursor: pointer;
-  }
-  .login-container input[type="submit"]:hover {
-    background-color: #555;
-  }
+
+<template>
+	<div class="row my-auto" style="height: 100vh;">
+
+		<div class="row">
+			<div class="col">
+				<ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>
+			</div>
+		</div>
+
+		<div class="row my-auto h-100 w-100">
+
+			<form @submit.prevent="login" class="d-flex flex-column align-items-center justify-content-center p-0">
+
+				<div class="row mx-auto my-auto">
+					<div class="col my-auto">
+						<img src="../assets/WasaPhoto_Logo.png" class="img-fluid" alt="Responsive image">
+					</div>
+					<div class="col my-auto">
+						<div class="row mx-auto p-1" style="width: 300px;">
+							<input type="text" class="form-control" v-model="identifier" @input="toLowerCase"
+								maxlength="16" minlength="3" placeholder="Username" />
+						</div>
+						<div class="row mx-auto p-1" style="width: 300px;">
+							<button class="btn btn-primary"
+								:disabled="identifier == null || identifier.length > 16 || identifier.length < 3 || identifier.trim().length < 3 || identifier.split(' ').length - 1 > 0">
+								Register/Login
+							</button>
+						</div>
+						<div class="row mx-auto">
+							<table cellspacing="0" cellpadding="0">
+								<tr>
+									<td>
+										<input type="checkbox" v-model="remember"/> Remember me
+									</td>
+								</tr>
+							</table>
+						</div>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</template>
+
+<style>
+.login {
+	height: 100vh;
+}
+
+[v-cloak] {
+	display: none
+}
+
+td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+table {
+  height: 20px;
+
+}
+
 </style>
-  

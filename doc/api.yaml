@@ -176,6 +176,42 @@ paths:
         '500':
           $ref : "#/components/responses/ServerDown"
   
+  /user:
+    # searchUser
+    parametrs:
+      - in: query
+      name: username
+      schema:
+        type: string
+      description: "Username to look for"
+    get:
+      tags: ["User"]
+      summary: "Search users"
+      description: To search users
+      operationId: getUsers
+      responses:
+        '200':
+          description: Return usernames
+          content:
+            application/json:
+              schema:
+                type: object
+                description: response object
+                properties:
+                  users:
+                    type: array
+                    description: Array of users
+                    items:
+                      $ref: "#/components/schemas/user"
+                    minItems: 0
+                    maxItems: 100
+        '400':
+          $ref: "#/components/responses/BadRequest"
+        '500':
+          $ref: "#/components/responses/ServerDown"
+      security:
+        - bearerAuth: [] 
+
   /user/{uid}/username:
     # setMyUserName
     parameters:

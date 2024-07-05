@@ -62,6 +62,8 @@ type AppDatabase interface {
 	FollowExists(uid int, followedUid int) (bool, error)
 	IsPhotoOwner(uid int, photoId int) (bool, error)
 	IsCommentOwner(uid int, commentId int) (bool, error)
+	SearchUsers(uidCaller int, query string) ([]string, error)
+
 	Ping() error
 }
 
