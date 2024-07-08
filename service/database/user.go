@@ -212,7 +212,7 @@ func (db *appdbimpl) LikeExists(uid int, photoId int) (bool, error) {
 	return exists, nil
 }
 
-func (db *appdbimpl) GetFollowing(uid int) ([]int, error) {
+func (db *appdbimpl) GetFollowing(uid int) ([]UserTuple, error) {
 	query := "SELECT followedUid FROM follow WHERE uid=?;"
 	rows, err := db.c.Query(query, uid)
 	if err != nil {
@@ -220,15 +220,16 @@ func (db *appdbimpl) GetFollowing(uid int) ([]int, error) {
 	}
 	defer rows.Close()
 
-	var array []int
+	var array []UserTuple
 
 	for rows.Next() {
 		var followedUid string
 		if err := rows.Scan(&followedUid); err != nil {
 			return nil, err
 		}
-		value, _ := strconv.Atoi(followedUid)
-		array = append(array, value)
+		token, _ := strconv.Atoi(followedUid)
+		username, _ := db.GetUsername(token)
+		array = append(array, UserTuple{Username: username, Token: token})
 	}
 
 	if err := rows.Err(); err != nil {
@@ -238,7 +239,7 @@ func (db *appdbimpl) GetFollowing(uid int) ([]int, error) {
 	return array, nil
 }
 
-func (db *appdbimpl) GetFollowers(followedUid int) ([]int, error) {
+func (db *appdbimpl) GetFollowers(followedUid int) ([]UserTuple, error) {
 	query := "SELECT uid FROM follow WHERE followedUid=?;"
 	rows, err := db.c.Query(query, followedUid)
 	if err != nil {
@@ -246,15 +247,16 @@ func (db *appdbimpl) GetFollowers(followedUid int) ([]int, error) {
 	}
 	defer rows.Close()
 
-	var array []int
+	var array []UserTuple
 
 	for rows.Next() {
 		var uid string
 		if err := rows.Scan(&uid); err != nil {
 			return nil, err
 		}
-		value, _ := strconv.Atoi(uid)
-		array = append(array, value)
+		token, _ := strconv.Atoi(uid)
+		username, _ := db.GetUsername(token)
+		array = append(array, UserTuple{Username: username, Token: token})
 	}
 
 	if err := rows.Err(); err != nil {

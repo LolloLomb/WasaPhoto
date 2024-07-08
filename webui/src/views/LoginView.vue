@@ -3,7 +3,7 @@ export default {
 	data: function () {
 		return {
 			errormsg: null,
-			identifier: "",
+			username: "",
 			remember: false,
 		}
 	},
@@ -11,10 +11,10 @@ export default {
 		async login() {
 			this.errormsg = null;
 			try {
-				let response = await this.$axios.post("/session", {
-					username: this.identifier.trim()
-				});
+				let response = await this.$axios.post("/session", {username: this.username.trim()});
 				let token = response.data.success.split('ID: ')[1];
+
+				localStorage.setItem('username', this.username);
 				localStorage.setItem('token', token);
 				localStorage.setItem('remember', this.remember);
 				this.$router.replace("/home")
@@ -25,7 +25,7 @@ export default {
 			}
 		},
 		toLowerCase(event) {
-			this.identifier = this.identifier.toLowerCase();
+			this.username = this.username.toLowerCase();
 		},
 	},
 
@@ -62,12 +62,12 @@ export default {
 					</div>
 					<div class="col my-auto">
 						<div class="row mx-auto p-1" style="width: 300px;">
-							<input type="text" class="form-control" v-model="identifier" @input="toLowerCase"
+							<input type="text" class="form-control" v-model="username" @input="toLowerCase"
 								maxlength="16" minlength="3" placeholder="Username" />
 						</div>
 						<div class="row mx-auto p-1" style="width: 300px;">
 							<button class="btn btn-primary"
-								:disabled="identifier == null || identifier.length > 16 || identifier.length < 3 || identifier.trim().length < 3 || identifier.split(' ').length - 1 > 0">
+								:disabled="username == null || username.length > 16 || username.length < 3 || username.trim().length < 3 || username.split(' ').length - 1 > 0">
 								Register/Login
 							</button>
 						</div>
@@ -88,6 +88,11 @@ export default {
 </template>
 
 <style>
+
+* {
+	font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
 .login {
 	height: 100vh;
 }

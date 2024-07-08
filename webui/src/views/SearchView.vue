@@ -3,7 +3,7 @@ export default {
     data: function (){
         return {
             search_username: "",
-            search_results: [],
+            search_results: []
         }
     },
 
@@ -13,19 +13,17 @@ export default {
             try {
                 let response = await this.$axios.get("/user?username=" + this.search_username)
                 this.search_results = response.data
-                console.log(this.search_results)
             }
             catch(e) {
                 this.search_results = []
             }
         },
         goTo(user) {
-            // andare sul profilo del guy
-        }
+            this.$router.replace("/profile/" + user)
+        },
     }
 }
 </script>
-
 
 <template>
     <div class="search-bar-container">
@@ -33,7 +31,7 @@ export default {
         minlength='3' maxlength='16' />
     </div>
     <div class="results-container" v-if="search_username.length > 0 && search_results.length > 0">
-        <div class="result" v-for="user in search_results" @click="goTo(user)">
+        <div class="result" v-for="user in search_results" :key="user" @click="goTo(user); search_results=[]">
             {{ user }}
         </div>
     </div>
@@ -50,7 +48,10 @@ export default {
     max-width: 600px;
     background-color: white;
     border: 1px solid #ddd;
-    border-radius: 5px;
+    border-radius: 25px;
+    border-color: #1ebbd7;
+    text-align: center;
+    letter-spacing: 2px;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
     overflow-y: auto;
     max-height: 400px;
@@ -61,10 +62,11 @@ export default {
     padding: 10px;
     border-bottom: 1px solid #eee;
     cursor: pointer;
+    z-index: 100px;
 }
 
 .result:hover {
-    background-color:rgb(30,87,215,0.1); ;
+    background-color:rgb(30,87,215,0.1);
 }
 
 .search-bar-container {

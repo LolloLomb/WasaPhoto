@@ -9,6 +9,9 @@ export default{
       localStorage.clear()
       this.$emit('logoutNavbar',false)
     },
+    getUsername(){
+      return localStorage.getItem('username')
+    }
   },
 }
 </script>
@@ -26,8 +29,8 @@ export default{
       <a href="#upload">
         <img src="../assets/upload.svg" :class="{'iconNormalselect': $route.path === '/upload', 'iconNormal': $route.path !== '/upload'}" alt="">
       </a>
-      <a href="#profile">
-        <img src="../assets/profile.svg" :class="{'iconNormalselect': $route.path === '/profile', 'iconNormal': $route.path !== '/profile'}" alt="">
+      <a v-bind:href="'#profile/' + getUsername()">
+        <img src="../assets/profile.svg" :class="{'iconNormalselect': $route.path === '/profile/' + getUsername(), 'iconNormal': $route.path !== '/profile/' + getUsername()}" alt="">
       </a>
       <a href="#">
         <img src="../assets/logout.svg" class="iconOut" alt="" @click="logout">

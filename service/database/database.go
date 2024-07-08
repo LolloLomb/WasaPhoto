@@ -43,8 +43,8 @@ type AppDatabase interface {
 	GetId(username string) (int, error)
 	GetUsername(uid int) (string, error)
 	FollowUser(uid int, followedUid int) error
-	GetFollowing(uid int) ([]int, error)
-	GetFollowers(followedUid int) ([]int, error)
+	GetFollowing(uid int) ([]UserTuple, error)
+	GetFollowers(followedUid int) ([]UserTuple, error)
 	UnfollowUser(uid int, followedUid int) error
 	BanUser(uid int, bannedUid int) error
 	BanExists(uid int, bannedUid int) (bool, error)
@@ -65,6 +65,11 @@ type AppDatabase interface {
 	SearchUsers(uidCaller int, query string) ([]string, error)
 
 	Ping() error
+}
+
+type UserTuple struct {
+	Username string
+	Token    int
 }
 
 type appdbimpl struct {

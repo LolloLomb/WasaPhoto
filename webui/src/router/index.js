@@ -2,7 +2,9 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import SearchView from '../views/SearchView.vue'
-/* Assicurati di importare correttamente i componenti delle view */
+import ProfileView from '../views/ProfileView.vue'
+import UploadView from '../views/UploadView.vue'
+/* nb importa tutti i comp che crei */
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -20,8 +22,16 @@ const router = createRouter({
 		component: HomeView
 	  },
 	{
+		path: '/upload',
+		component: UploadView
+	},
+	{
 		path: '/search',
 		component: SearchView
+	},
+	{
+		path: '/profile/:username',
+		component: ProfileView
 	},
 	{
 		path: "/:catchAll(.*)",

@@ -26,12 +26,19 @@ type Photo struct {
 	Owner   string `json:"username_owner"`
 }
 
+/*
+type UserToken struct {
+	Username string `json:"username"`
+	Token    int    `json:"token"`
+}
+*/
+
 type Profile struct {
-	Username    string `json:"username"`
-	Id          int    `json:"id"`
-	Following   []int  `json:"following"`
-	Followers   []int  `json:"followers"`
-	PostsAmount int    `json:"postsAmount"`
+	Username    string               `json:"username"`
+	Id          int                  `json:"id"`
+	Following   []database.UserTuple `json:"following"`
+	Followers   []database.UserTuple `json:"followers"`
+	PostsAmount int                  `json:"postsAmount"`
 }
 
 type Comment struct {
@@ -58,9 +65,10 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	// Decodifica il corpo JSON della richiesta in una struttura
 	var requestBody NewUsername
 	auth := r.Header.Get("Authorization")
+	authConv, _ := strconv.Atoi(auth)
 	uid, _ := strconv.Atoi(ps.ByName("uid"))
-	u, _ := rt.db.GetUsername(uid)
-	if u != auth || auth == "" {
+
+	if uid != authConv || auth == "" {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)
 		return
@@ -75,12 +83,13 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, ps http
 
 	// Estrai il nuovo username dalla struttura
 	newUsername := requestBody.Content
+
 	if newUsername == "" {
 		response := Response{ErrorMessage: "Error occured while decoding JSON newUsername: value not found"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
-	// Chiamare il pacchetto del database per impostare il nuovo username
+
 	err := rt.db.SetMyNickname(newUsername, uid)
 	if errors.Is(err, database.ErrNameAlreadyTaken) {
 		response := Response{ErrorMessage: "Nome utente già in uso"}
@@ -407,32 +416,21 @@ func (rt *_router) getUserProfile(w http.ResponseWriter, r *http.Request, ps htt
 		PostsAmount: postsAmount,
 	}
 
-	// Creare una risposta JSON di successo con il messaggio di log
-	jsonData, err := json.MarshalIndent(profile, "", "  ")
-	if err != nil {
-		response := Response{ErrorMessage: "Errore server, impossibile codificare json di risposta"}
-		sendJSONResponse(w, response, http.StatusInternalServerError)
-		return
-	}
-	response := Response{SuccessMessage: fmt.Sprintf("Profile returned successfully: %v", jsonData)}
-
 	// Invia la risposta JSON
-	sendJSONResponse(w, response, http.StatusOK)
+	sendJSONResponse(w, profile, http.StatusOK)
 }
 
 func (rt *_router) searchUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// controllare che sia loggato
-	/*
-		auth := r.Header.Get("Authorization")
-		if auth == "" {
-			response := Response{ErrorMessage: ErrForbidden.Error()}
-			sendJSONResponse(w, response, http.StatusForbidden)
-			return
-		}
-	*/
 
-	//u, _ := strconv.Atoi(auth)
-	u := 1
+	auth := r.Header.Get("Authorization")
+	if auth == "" {
+		response := Response{ErrorMessage: ErrForbidden.Error()}
+		sendJSONResponse(w, response, http.StatusForbidden)
+		return
+	}
+
+	u, _ := strconv.Atoi(auth)
 
 	query := r.URL.Query().Get("username")
 
@@ -489,7 +487,18 @@ func (rt *_router) getMyStream(w http.ResponseWriter, r *http.Request, ps httpro
 		http.ServeFile(w, r, filePath)
 		return
 	}
+}
 
+func (rt *_router) getId(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	username := r.URL.Query().Get("username")
+	ret, err := rt.db.GetId(username)
+	if err != nil {
+		response := Response{ErrorMessage: "ID NOT FOUND"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+	response := Response{SuccessMessage: fmt.Sprintf("%v", ret)}
+	sendJSONResponse(w, response, http.StatusOK)
 }
 
 func sendJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
