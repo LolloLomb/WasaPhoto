@@ -41,18 +41,18 @@ func (db *appdbimpl) CreatePhoto(uid int) (int, error) {
 	if err != nil {
 		return -1, err
 	}
-	photoId, err := db.getLastPhotoId(uid)
+	photoId, err := db.getLastPhotoId()
 	if err != nil {
 		return photoId, err
 	}
 	return photoId, nil
 }
 
-func (db *appdbimpl) getLastPhotoId(uid int) (int, error) {
-	query := "SELECT photoId FROM photo WHERE userId = ? ORDER BY photoId DESC LIMIT 1;"
+func (db *appdbimpl) getLastPhotoId() (int, error) {
+	query := "SELECT max(photoId) FROM photo;"
 
 	// Eseguire la query
-	rows, err := db.c.Query(query, uid)
+	rows, err := db.c.Query(query)
 	if err != nil {
 		return -1, err
 	}
@@ -74,7 +74,6 @@ func (db *appdbimpl) getLastPhotoId(uid int) (int, error) {
 	if lastPhotoID != -1 {
 		return lastPhotoID, nil
 	}
-
 	// Se non ci sono risultati (tabella vuota), restituire un valore predefinito o un errore
 	return lastPhotoID, errors.New("nessun risultato trovato per l'utente specificato")
 }
@@ -112,6 +111,7 @@ func (db *appdbimpl) GetId(username string) (int, error) {
 	row := db.c.QueryRow(query, username)
 	var uid int
 	err := row.Scan(&uid)
+
 	if err != nil {
 		return 0, err
 	}
@@ -196,7 +196,6 @@ func (db *appdbimpl) BanExists(uid int, bannedUid int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	// fmt.Print(exists, uid, bannedUid)
 	return exists, nil
 }
 
@@ -482,22 +481,39 @@ func (db *appdbimpl) DeletePhoto(photoId int) error {
 	return nil
 }
 
-func (db *appdbimpl) PostsAmount(uid int) (int, error) {
-	// restituisce il numero di post di un utente dato un uid
+func (db *appdbimpl) GetPosts(uid int) ([]int, error) {
+	// Verifica se l'utente esiste
 	valid, err := db.IdExists(uid)
-	if !valid {
-		return -1, err
+	if err != nil || !valid {
+		return nil, err
 	}
 
-	query := fmt.Sprintf("SELECT COUNT(*) FROM photo WHERE uid = '%s'", strconv.Itoa(uid))
+	// Query per ottenere tutti i photoId associati all'uid
+	query := fmt.Sprintf("SELECT photoId FROM photo WHERE uid = %d", uid)
 
 	// Esegui la query
-	var conteggio int
-	err = db.c.QueryRow(query).Scan(&conteggio)
+	rows, err := db.c.Query(query)
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
-	return conteggio, err
+	defer rows.Close()
+
+	// Crea una slice per memorizzare i risultati
+	var posts []int
+	for rows.Next() {
+		var photoId int
+		if err := rows.Scan(&photoId); err != nil {
+			return nil, err
+		}
+		posts = append(posts, photoId)
+	}
+
+	// Verifica errori di iterazione
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }
 
 func (db *appdbimpl) GetStream(uid int) ([]int, error) {

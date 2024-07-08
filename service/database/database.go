@@ -56,7 +56,7 @@ type AppDatabase interface {
 	UnlikePhoto(uid int, photoId int) error
 	CommentPhoto(uid int, photoId int, text string) error
 	UncommentPhoto(photoId int, commentId int) error
-	PostsAmount(uid int) (int, error)
+	GetPosts(uid int) ([]int, error)
 	DeletePhoto(photoId int) error
 	GetStream(uid int) ([]int, error)
 	FollowExists(uid int, followedUid int) (bool, error)

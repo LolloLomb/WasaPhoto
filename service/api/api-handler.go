@@ -27,6 +27,7 @@ func (rt *_router) Handler() http.Handler {
 
 	rt.router.GET("/user", rt.wrap(rt.searchUser))
 	rt.router.GET("/get_id", rt.wrap(rt.getId))
+	rt.router.GET("/photo", rt.wrap(rt.getPhotos))
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)
 

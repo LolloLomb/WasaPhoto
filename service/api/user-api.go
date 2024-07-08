@@ -22,7 +22,14 @@ type User struct {
 }
 
 type Photo struct {
-	Content string `json:"photo_data"`
+	Content  string    `json:"photo_data"`
+	Owner    string    `json:"username_owner"`
+	Comments []Comment `json:"comments"`
+	Likes    []int     `json:"likes"`
+}
+
+type Comment struct {
+	Content string `json:"comment_content"`
 	Owner   string `json:"username_owner"`
 }
 
@@ -34,16 +41,11 @@ type UserToken struct {
 */
 
 type Profile struct {
-	Username    string               `json:"username"`
-	Id          int                  `json:"id"`
-	Following   []database.UserTuple `json:"following"`
-	Followers   []database.UserTuple `json:"followers"`
-	PostsAmount int                  `json:"postsAmount"`
-}
-
-type Comment struct {
-	Text  string `json:"text"`
-	Owner string `json:"username_owner"`
+	Username  string               `json:"username"`
+	Id        int                  `json:"id"`
+	Following []database.UserTuple `json:"following"`
+	Followers []database.UserTuple `json:"followers"`
+	Posts     []Photo              `json:"posts"`
 }
 
 type NewUsername struct {
@@ -157,24 +159,33 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.P
 func (rt *_router) followUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Decodifica il corpo JSON della richiesta in una struttura
 	var requestBody User
-	auth := r.Header.Get("Authorization")
-	uid, _ := strconv.Atoi(ps.ByName("uid"))
-	u, _ := rt.db.GetUsername(uid)
 
-	if u != auth || auth == "" {
+	auth := r.Header.Get("Authorization")
+	uid := ps.ByName("uid")
+
+	if uid != auth || auth == "" {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)
 		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
-		// Gestisci errori di decodifica JSON
-		response := Response{ErrorMessage: "Errore durante la decodifica del corpo JSON"}
+	bytes, _ := io.ReadAll(r.Body)
+	if err := json.Unmarshal(bytes, &requestBody); err != nil {
+		response := Response{ErrorMessage: "Error occured while decoding JSON1"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
 
-	valid, _ := rt.db.IdExists(uid)
+	username := requestBody.Content
+	if username == "" {
+		response := Response{ErrorMessage: "Error occured while decoding JSON2"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	int_uid, _ := strconv.Atoi(uid)
+
+	valid, _ := rt.db.IdExists(int_uid)
 	// Chiamo il database
 	if !valid {
 		response := Response{ErrorMessage: "Id utente loggato non valido"}
@@ -189,7 +200,7 @@ func (rt *_router) followUser(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	valid, _ = rt.db.BanExists(uid, followedUid)
+	valid, _ = rt.db.BanExists(int_uid, followedUid)
 	if valid {
 		// funziona al contrario perchè true vuol dire che è stato bannato
 		response := Response{ErrorMessage: "Non puoi seguire un utente che hai bannato"}
@@ -197,13 +208,13 @@ func (rt *_router) followUser(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 	// se invece vuole seguire qualcuno che lo ha bannato
-	valid, _ = rt.db.BanExists(followedUid, uid)
+	valid, _ = rt.db.BanExists(followedUid, int_uid)
 	if valid {
 		response := Response{ErrorMessage: "Internal error"}
 		sendJSONResponse(w, response, http.StatusForbidden)
 	}
 
-	err = rt.db.FollowUser(uid, followedUid)
+	err = rt.db.FollowUser(int_uid, followedUid)
 	if errors.Is(err, database.ErrCannotFollowHimself) {
 		response := Response{ErrorMessage: "User id e following user id coincidono"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
@@ -227,18 +238,20 @@ func (rt *_router) followUser(w http.ResponseWriter, r *http.Request, ps httprou
 }
 
 func (rt *_router) unfollowUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	uid, _ := strconv.Atoi(ps.ByName("uid"))
+
+	uid := ps.ByName("uid")
 	followedUid, _ := strconv.Atoi(ps.ByName("following_uid"))
 	auth := r.Header.Get("Authorization")
-	u, _ := rt.db.GetUsername(uid)
 
-	if u != auth || auth == "" {
+	if uid != auth || auth == "" {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)
 		return
 	}
 
-	err := rt.db.UnfollowUser(uid, followedUid)
+	int_uid, _ := strconv.Atoi(uid)
+
+	err := rt.db.UnfollowUser(int_uid, followedUid)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		response := Response{ErrorMessage: "You aren't following this user"}
@@ -261,11 +274,12 @@ func (rt *_router) unfollowUser(w http.ResponseWriter, r *http.Request, ps httpr
 func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Decodifica il corpo JSON della richiesta in una struttura
 	var requestBody User
-	auth := r.Header.Get("Authorization")
-	uid, _ := strconv.Atoi(ps.ByName("uid"))
-	u, _ := rt.db.GetUsername(uid)
 
-	if u != auth || auth == "" {
+	auth := r.Header.Get("Authorization")
+	uid := ps.ByName("uid")
+	int_uid, _ := strconv.Atoi(uid)
+
+	if uid != auth || auth == "" {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)
 		return
@@ -278,22 +292,32 @@ func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	uidBanned, err := rt.db.GetId(requestBody.Content)
-	if err != nil {
-		response := Response{ErrorMessage: "Username dell'utente da bannare non valido"}
-		sendJSONResponse(w, response, http.StatusBadRequest)
-		return
-	}
-
-	valid, _ := rt.db.IdExists(uid)
+	valid, _ := rt.db.IdExists(int_uid)
 	if !valid {
 		response := Response{ErrorMessage: "Id dell'utente loggato non valido"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
 
-	if flag, _ := rt.db.FollowExists(uid, uidBanned); flag {
-		err = rt.db.UnfollowUser(uid, uidBanned)
+	uidBanned, err := rt.db.GetId(requestBody.Content)
+
+	if err != nil {
+		response := Response{ErrorMessage: "Username dell'utente da bannare non valido"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	if flag, _ := rt.db.FollowExists(int_uid, uidBanned); flag {
+		err = rt.db.UnfollowUser(int_uid, uidBanned)
+		if err != nil {
+			response := Response{ErrorMessage: "Errore interno del server, impossibile rimuovere l'utente dalla lista follow automaticamente"}
+			sendJSONResponse(w, response, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if flag, _ := rt.db.FollowExists(uidBanned, int_uid); flag {
+		err = rt.db.UnfollowUser(uidBanned, int_uid)
 		if err != nil {
 			response := Response{ErrorMessage: "Errore interno del server, impossibile rimuovere l'utente dalla lista follow automaticamente"}
 			sendJSONResponse(w, response, http.StatusInternalServerError)
@@ -302,11 +326,11 @@ func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter
 	}
 
 	// fine controlli input, inizio controlli output
-	err = rt.db.BanUser(uid, uidBanned)
+	err = rt.db.BanUser(int_uid, uidBanned)
 
 	if errors.Is(err, database.ErrAlreadyBanned) {
 		response := Response{ErrorMessage: "Utente già bannato"}
-		sendJSONResponse(w, response, http.StatusBadRequest)
+		sendJSONResponse(w, response, http.StatusNotModified)
 		return
 	}
 	if errors.Is(err, database.ErrCannotBanHimself) {
@@ -316,7 +340,7 @@ func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	valid, _ = rt.db.BanExists(uidBanned, uid)
+	valid, _ = rt.db.BanExists(uidBanned, int_uid)
 	if valid {
 		response := Response{ErrorMessage: "Internal error"}
 		sendJSONResponse(w, response, http.StatusForbidden)
@@ -336,17 +360,18 @@ func (rt *_router) banUser(w http.ResponseWriter, r *http.Request, ps httprouter
 }
 
 func (rt *_router) unbanUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	uid, _ := strconv.Atoi(ps.ByName("uid"))
+	uid := ps.ByName("uid")
+	int_uid, _ := strconv.Atoi(uid)
 	bannedUid, _ := strconv.Atoi(ps.ByName("banned_uid"))
 	auth := r.Header.Get("Authorization")
-	u, _ := rt.db.GetUsername(uid)
-	if u != auth || auth == "" {
+
+	if uid != auth || auth == "" {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)
 		return
 	}
 
-	err := rt.db.UnbanUser(uid, bannedUid)
+	err := rt.db.UnbanUser(int_uid, bannedUid)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		response := Response{ErrorMessage: "You haven't banned this user"}
@@ -371,10 +396,17 @@ func (rt *_router) getUserProfile(w http.ResponseWriter, r *http.Request, ps htt
 	username, err := rt.db.GetUsername(uid)
 	// devo controllare se chi avanza la richiesta non è stato bloccato dall'utente richiesto
 	auth := r.Header.Get("Authorization")
-	u, _ := rt.db.GetId(auth)
-	if flag, _ := rt.db.BanExists(uid, u); flag {
-		response := Response{ErrorMessage: ErrForbidden.Error()}
-		sendJSONResponse(w, response, http.StatusForbidden)
+	int_auth, _ := strconv.Atoi(auth)
+
+	if flag, _ := rt.db.BanExists(int_auth, uid); flag {
+		response := Response{}
+		sendJSONResponse(w, response, 206)
+		return
+	}
+
+	if flag, _ := rt.db.BanExists(uid, int_auth); flag {
+		response := Response{}
+		sendJSONResponse(w, response, 400)
 		return
 	}
 
@@ -400,20 +432,17 @@ func (rt *_router) getUserProfile(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	postsAmount, err := rt.db.PostsAmount(uid)
+	var posts []Photo
 
-	if err != nil {
-		response := Response{ErrorMessage: "Errore server, impossibile richiedere il numero di post"}
-		sendJSONResponse(w, response, http.StatusInternalServerError)
-		return
-	}
+	// DA RISCRIVERE
+	//posts, err := rt.db.GetPosts(uid)
 
 	profile := Profile{
-		Username:    username,
-		Id:          uid,
-		Following:   following,
-		Followers:   followers,
-		PostsAmount: postsAmount,
+		Username:  username,
+		Id:        uid,
+		Following: following,
+		Followers: followers,
+		Posts:     posts,
 	}
 
 	// Invia la risposta JSON

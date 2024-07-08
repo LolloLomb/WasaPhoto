@@ -80,7 +80,6 @@ export default {
     justify-content: center;
 }
 
-/* Stile della barra di ricerca */
 .search-bar {
     width: 50%;
     max-width: 600px;
@@ -89,7 +88,7 @@ export default {
 }
 
 .input-search{
-height: 50px;
+    height: 50px;
     width: 500px;
     padding: 10px;
     font-size: 18px;

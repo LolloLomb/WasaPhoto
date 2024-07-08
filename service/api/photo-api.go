@@ -37,11 +37,19 @@ func (rt *_router) uploadPhoto(w http.ResponseWriter, r *http.Request, ps httpro
 	// Ottieni i dati base64 dell'immagine
 	photoData := requestBody.Content
 	owner := requestBody.Owner
-	uid, err := rt.db.GetId(owner)
 
+	// ottengo l'id di chi vuole pubblicare la foto
+	uid, _ := rt.db.GetId(owner)
+
+	// ottengo l'auth nell'header
 	auth := r.Header.Get("Authorization")
 
-	if owner != auth || auth == "" {
+	// converto l'auth in intero per ottenere l'username e confrontarlo con chi vuole pubblicare la foto
+	int_auth, _ := strconv.Atoi(auth)
+	owner_from_auth, err := rt.db.GetUsername(int_auth)
+
+	// se non sono uguali oppure l'auth è vuoto, errore
+	if owner != owner_from_auth || owner_from_auth == "" {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)
 		return
@@ -61,21 +69,30 @@ func (rt *_router) uploadPhoto(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	// Salva l'immagine su disco (in questo caso, come file PNG)
+	// salva l'immagine nel database
 	photoId, err := rt.db.CreatePhoto(uid)
+
 	/* if photoId < 0 {
 		response := Response{ErrorMessage: "photoId < 0 from database has been returned"}
 		sendJSONResponse(w, response, http.StatusInternalServerError)
 		return
 	}*/
+
 	if err != nil {
 		response := Response{ErrorMessage: "Errore durante la creazione della foto nel database"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
 
-	path := "media/" + strconv.Itoa(photoId) + ".png"
+	// Verifica se la cartella "tmp" esiste
+	_, err = os.Stat("../../tmp/")
 
+	if os.IsNotExist(err) {
+		// Se la cartella non esiste, creala
+		_ = os.Mkdir("../../tmp/", 0755) // 0755 è il permesso di default per la cartella
+	}
+
+	path := "../../tmp/" + strconv.Itoa(photoId) + ".png"
 	err = saveImageLocally(imageData, path)
 
 	if err != nil {
@@ -176,7 +193,7 @@ func (rt *_router) commentPhoto(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	text := requestBody.Text
+	text := requestBody.Content
 
 	photoId, _ := strconv.Atoi(ps.ByName("photo_id"))
 	valid, _ := rt.db.PhotoIdExists(photoId)
@@ -335,4 +352,24 @@ func saveImageLocally(imageData []byte, filePath string) error {
 
 	// fmt.Printf("Immagine salvata correttamente: %s\n", filePath)
 	return nil
+}
+
+func (rt *_router) getPhotos(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	// per ottenere le foto di un dato utente
+	var requestBody User
+	bytes, _ := io.ReadAll(r.Body)
+
+	if err := json.Unmarshal(bytes, &requestBody); err != nil {
+		response := Response{ErrorMessage: "Error occured while decoding JSON1"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
+	username := requestBody.Content
+	if username == "" {
+		response := Response{ErrorMessage: "Error occured while decoding JSON2"}
+		sendJSONResponse(w, response, http.StatusBadRequest)
+		return
+	}
+
 }

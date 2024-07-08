@@ -8,6 +8,7 @@ export default {
             posts_amount: 0,
             followers: [],
             following: [],
+            photos: [],
             currentBanned: false,
             token: null,
             banStatus: false,
@@ -24,7 +25,7 @@ export default {
             if (newName !== oldName){
                 this.loadInfo()
             }
-        }
+        },
     },
 
 	methods: {
@@ -38,27 +39,24 @@ export default {
                 this.userExists = true
 				let response = await this.$axios.get("/user/" + id.data.success);
 
-                this.banStatus = false
-                this.currentBanned = false
-                
+                this.currentBanned = false     
+                    
                 this.nickname = response.data.username
+                this.followStatus = response.data.followers != null ? response.data.followers.find(obj => obj.Token == localStorage.getItem('token')) != undefined : false
 				this.followersCount = response.data.followers != null ? response.data.followers.length : 0
 				this.followingCount = response.data.following != null ? response.data.following.length : 0
-				this.posts_amount = response.data.postsAmount != 0 ? response.data.posts : 0
-                
+				this.posts_amount = response.data.posts != null ? response.data.posts.length : 0
+                this.posts = response.data.posts != null ? response.data.posts : []
+                if (response.status == 206){
+                    this.banStatus = true
+                    this.posts_amount = 0
+                }
+
 			}catch(e){
 				this.currentBanned = true
 			}
         },
-        toggleBan(){
-            this.banStatus = !this.banStatus
-            if (this.banStatus == true) {
-                this.followStatus = false
-            }
-        },
-        toggleFollow(){
-            this.followStatus = !this.followStatus
-        },
+        
         changeNameModalIn() {
             this.isChangingName = true
         },
@@ -78,20 +76,54 @@ export default {
                 localStorage.setItem('username', this.username)
                 this.newUsarname=""     
                 this.isChangingName=false
-                this.alreadyTaken=false           
-
+                this.alreadyTaken=false   
+                this.$router.replace("/profile/" + this.username)
 			} 
             catch(e){
                 this.alreadyTaken = true;
 			}
 		},
+
+        async followClick() {
+            if(!this.followStatus) {
+                // aggiungi a follow
+                let response = await this.$axios.post("/user/" + localStorage.getItem('token') + "/following", {username: this.username});
+                this.followersCount += 1
+            }
+            else {
+                let id = await this.$axios.get("/get_id?username=" + this.username)
+                let response = await this.$axios.delete("/user/" + localStorage.getItem('token') + "/following/" + id.data.success, {username: this.username});
+                this.followersCount -= 1
+            }
+            this.followStatus = !this.followStatus
+        },
+        async banClick() {
+            if (!this.banStatus) {
+                let id = await this.$axios.get("/get_id?username=" + this.username)
+                // aggiungi ai bannati ma rimuovi anche dai tuoi following
+                if (this.followStatus) {
+                    this.$axios.delete("/user/" + localStorage.getItem('token') + "/following/" + id.data.success, {username: this.username});
+                    this.followersCount -= 1
+                    this.followStatus = !this.followStatus
+                }
+
+                let response = this.$axios.post("/user/" + localStorage.getItem('token') + "/ban", {username: this.username})
+            }
+            else {
+                // unban
+                let unban_id = await this.$axios.get("/get_id?username=" + this.username)
+                this.$axios.delete("/user/" + localStorage.getItem('token') + "/ban/" + unban_id.data.success, {username: this.username});
+            }
+            this.banStatus = !this.banStatus
+            this.loadInfo()
+        }
 	},
 
 	async mounted() {
         if (!localStorage.getItem('token')) {
             this.$router.replace('/login')
         }
-        await this.loadInfo()
+        this.loadInfo()
 	},
 
     computed: {
@@ -100,7 +132,7 @@ export default {
         },
         isOwner() {
             return this.$route.params.username === localStorage.getItem('username')
-        }
+        },
     }
 }
 </script>
@@ -123,10 +155,10 @@ export default {
       </div>
     </div>
 
-	<div class = "info" v-if="userExists && !currentBanned">
-        <div class="row" style="width: 90%;">
-            <div class="col" style="margin-top: 15px;">
-                <div style="margin-left: 350px;">
+	<div class = "info" v-if="userExists && !currentBanned" v-cloak>
+        <div class="row" style="max-width: 50%; margin: 15px auto" id="infoBorder">
+            <div class="col" style="max-width: 30%; margin-top:20px">
+                <div>
                 <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" class="bi bi-person-square" viewBox="0 0 16 16" style="width: 200px;">
                     <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
                     <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm12 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1v-1c0-1-1-4-6-4s-6 3-6 4v1a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z"/>
@@ -134,7 +166,7 @@ export default {
                 <h3 class="name_under_propic"> {{ username }} </h3>
             </div>
             </div>
-            <div class="col my-auto" style="padding-right: 300px;">
+            <div class="col my-auto" style="max-width: 70%;">
             <div class="row">
             <div class="col my-auto">
                 <p class="textUp" style="text-align: center">Posts</p>
@@ -149,14 +181,14 @@ export default {
                 <p class="textDown" style="text-align: center;">{{ followingCount }}</p>
             </div>
         </div>
-        <div class="row mx-auto" style="text-align: center; width: 50%;" v-if="!isOwner">
+        <div class="row mx-auto" style="text-align: center; width: 70%;" v-if="!isOwner">
             <div class="col">
-                <button class="followButton" @click="toggleFollow">
+                <button class="followButton" @click="followClick" v-if="!banStatus">
                     {{ followStatus ? 'Unfollow' : 'Follow' }}
                 </button>
             </div>
             <div class="col">
-                <button class="banButton" @click="toggleBan">
+                <button class="banButton" @click="banClick">
                     {{ banStatus ? 'Unban' : 'Ban' }}
                 </button>
             </div>
@@ -171,13 +203,49 @@ export default {
     </div>
         </div>
     </div>
-    <div>
-        <!--Qua ci va la logica di griglia per gestire le foto-->
 
+    <div v-else-if="currentBanned" v-cloak>
+        <div class="profileNotFoundBox mx-auto">
+            400 : Who are you looking for?
+        </div>
+        <div class="text-center">
+            <img src="../assets/sad_face.png" class="img-fluid" alt="Responsive image">
+        </div>
+    </div>
+    <div class="row">
+            <div class="col">
+                
+            </div>
+    </div>
+
+    <div>
+        
     </div>
 </template>
 
-<style>
+<style scoped>
+
+[v-cloak] {
+	display: none
+}
+
+.profileNotFoundBox {
+    text-align: center; /* Centra il testo all'interno del box */
+    margin-bottom: 20px; /* Aggiungi uno spazio tra il box e l'immagine */
+    font-size: 50px
+}
+
+.text-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#infoBorder {
+    border: 10px solid #abd3da;
+    border-radius: 30px;
+    padding: 20px;
+}
 
 .setButton {
     display: flex;
@@ -202,12 +270,12 @@ export default {
     display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px 14px;
+  padding: 12px 40px;
   font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
   border-radius: 6px;
   border: none;
   color: #fff;
-  background: linear-gradient(180deg, #fd5252 0%, #812e2e 100%);
+  background: linear-gradient(180deg, #fd5252 0%, #6d1818 100%);
    background-origin: border-box;
   box-shadow: 0px 0.5px 1.5px rgba(54, 122, 246, 0.25), inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2);
   user-select: none;
@@ -221,7 +289,7 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px 14px;
+  padding: 12px 30px;
   font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
   border-radius: 6px;
   border: none;
@@ -263,7 +331,7 @@ export default {
 
 .info {
     padding-top: 100px;
-    animation: fadeIn 1s ease-in-out;
+    animation: fadeIn 0.5s ease-in-out;
 }
 
 .popup-overlay {

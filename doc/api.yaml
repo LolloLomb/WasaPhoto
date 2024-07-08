@@ -178,20 +178,21 @@ paths:
   
   /user:
     # searchUser
-    parametrs:
-      - in: query
-      name: username
-      schema:
-        type: string
-      description: "Username to look for"
     get:
-      tags: ["User"]
+      tags:
+        - "User"
       summary: "Search users"
-      description: To search users
-      operationId: getUsers
+      description: "To search users"
+      operationId: "getUsers"
+      parameters:
+        - in: query
+          name: username
+          schema:
+            type: string
+          description: "Username to look for"
       responses:
         '200':
-          description: Return usernames
+          description: "Return usernames"
           content:
             application/json:
               schema:
