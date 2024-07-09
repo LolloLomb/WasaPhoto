@@ -376,16 +376,37 @@ func (db *appdbimpl) UnbanUser(uid int, bannedUid int) error {
 	return nil
 }
 
-func (db *appdbimpl) CommentPhoto(uid int, photoId int, text string) error {
+func (db *appdbimpl) CommentPhoto(uid int, photoId int, text string) (int, error) {
 	// Inserisci la tupla nella tabella comment
 	formattedTime := time.Now().Format("2006-01-02T15:04:05Z")
-	query := "INSERT INTO comment (uid, commentText, photoId, uploadDate) VALUES (?,?,?);"
+	query := "INSERT INTO comment (uid, commentText, photoId, uploadDate) VALUES (?,?,?,?);"
 	_, err := db.c.Exec(query, uid, text, photoId, formattedTime)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	query = "SELECT commentId FROM comment WHERE uid = ? and uploadDate = ?;"
+	rows, err := db.c.Query(query, uid, formattedTime)
+	if err != nil {
+		return -1, err
+	}
+
+	defer rows.Close()
+
+	var commentId int
+
+	for rows.Next() {
+		err := rows.Scan(&commentId)
+		if err != nil {
+			return -1, err
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return -1, err
+	}
+
+	return commentId, nil
 }
 
 func (db *appdbimpl) UncommentPhoto(photoId int, commentId int) error {
@@ -521,7 +542,7 @@ func (db *appdbimpl) GetPosts(uid int) ([]Photo, error) {
 }
 
 func (db *appdbimpl) getComments(photoId int) ([]Comment, error) {
-	query := fmt.Sprintf("SELECT uid, commentText FROM comment WHERE photoId = %d", photoId)
+	query := fmt.Sprintf("SELECT uid, commentText, commentId FROM comment WHERE photoId = %d", photoId)
 	var username string
 	// Esegui la query
 	rows, err := db.c.Query(query)
@@ -537,14 +558,16 @@ func (db *appdbimpl) getComments(photoId int) ([]Comment, error) {
 
 		var tmp_uid int
 		var tmp_commentText string
+		var tmp_commentId int
 
-		if err := rows.Scan(&tmp_uid, &tmp_commentText); err != nil {
+		if err := rows.Scan(&tmp_uid, &tmp_commentText, &tmp_commentId); err != nil {
 			return nil, err
 		}
 		username, _ = db.GetUsername(tmp_uid)
 		tmp_comm = Comment{
 			Owner:   username,
 			Content: tmp_commentText,
+			ID:      tmp_commentId,
 		}
 		result = append(result, tmp_comm)
 	}
@@ -603,7 +626,7 @@ func (db *appdbimpl) IsPhotoOwner(uid int, photoId int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	realOwnerId, _ := db.GetId(realOwner)
+	realOwnerId, _ := strconv.Atoi(realOwner)
 	if uid == realOwnerId {
 		return true, err
 	}
@@ -617,8 +640,9 @@ func (db *appdbimpl) IsCommentOwner(uid int, photoId int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	realOwnerId, _ := db.GetId(realOwner)
-	if uid == realOwnerId {
+	realOwnerUid, _ := strconv.Atoi(realOwner)
+
+	if uid == realOwnerUid {
 		return true, err
 	}
 	return false, nil

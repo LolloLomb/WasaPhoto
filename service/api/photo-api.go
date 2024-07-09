@@ -189,15 +189,19 @@ func (rt *_router) commentPhoto(w http.ResponseWriter, r *http.Request, ps httpr
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
+
 	// verificare che sei l'autore del commento che stai inviando
 	auth := r.Header.Get("Authorization")
-	if requestBody.Owner != auth || auth == "" {
+	authUid, _ := strconv.Atoi(auth)
+
+	uid, err := rt.db.GetId(requestBody.Owner)
+
+	if uid != authUid || auth == "" {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)
 		return
 	}
 
-	uid, err := rt.db.GetId(requestBody.Owner)
 	if err != nil {
 		response := Response{ErrorMessage: "Username non valido"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
@@ -214,7 +218,7 @@ func (rt *_router) commentPhoto(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	err = rt.db.CommentPhoto(uid, photoId, text)
+	commentId, err := rt.db.CommentPhoto(uid, photoId, text)
 
 	if err != nil {
 		response := Response{ErrorMessage: "Errore interno del server"}
@@ -223,7 +227,7 @@ func (rt *_router) commentPhoto(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 
 	// Creare una risposta JSON di successo con il messaggio di log
-	response := Response{SuccessMessage: fmt.Sprintf("Commento aggiunto con successo alla foto con id: %d", photoId)}
+	response := Response{SuccessMessage: fmt.Sprintf("%d", commentId)}
 
 	// Invia la risposta JSON
 	sendJSONResponse(w, response, http.StatusCreated)
@@ -270,15 +274,18 @@ func (rt *_router) uncommentPhoto(w http.ResponseWriter, r *http.Request, ps htt
 
 	// l'username esiste?
 	auth := r.Header.Get("Authorization")
-	authUid, err := rt.db.GetId(auth)
+	authUid, err := strconv.Atoi(auth)
+
 	if authUid == 0 || auth == "" || err != nil {
 		response := Response{ErrorMessage: "Username non valido nell'header"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
 	// sei il proprietario?
-	flag, _ := rt.db.IsPhotoOwner(authUid, photoId)
-	if !flag {
+	flag1, _ := rt.db.IsPhotoOwner(authUid, photoId)
+	flag2, _ := rt.db.IsCommentOwner(authUid, commentId)
+
+	if !flag1 && !flag2 {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)
 		return

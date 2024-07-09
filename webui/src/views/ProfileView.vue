@@ -1,4 +1,6 @@
 <script>
+import Navbar from '../components/Navbar.vue';
+
 export default {
 	data: function() {
 		return {
@@ -210,7 +212,7 @@ export default {
 
     <div v-else-if="currentBanned" v-cloak>
         <div class="profileNotFoundBox mx-auto">
-            400 : Who are you looking for?
+            Who are you looking for?
         </div>
         <div class="text-center">
             <img src="../assets/sad_face.png" class="img-fluid" alt="Responsive image">

@@ -54,7 +54,7 @@ type AppDatabase interface {
 	PhotoIdExists(photoId int) (bool, error)
 	LikePhoto(uid int, photoId int) error
 	UnlikePhoto(uid int, photoId int) error
-	CommentPhoto(uid int, photoId int, text string) error
+	CommentPhoto(uid int, photoId int, text string) (int, error)
 	UncommentPhoto(photoId int, commentId int) error
 	GetPosts(uid int) ([]Photo, error)
 	DeletePhoto(photoId int) error
@@ -82,6 +82,7 @@ type Photo struct {
 type Comment struct {
 	Content string `json:"comment_content"`
 	Owner   string `json:"username_owner"`
+	ID      int    `json:"ID"`
 }
 
 type appdbimpl struct {

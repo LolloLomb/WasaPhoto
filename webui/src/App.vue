@@ -18,7 +18,7 @@ export default {
 		},
 		updateView(newRoute){
 			this.$router.replace(newRoute)
-		},
+		}
 	},
 	
 	mounted(){
