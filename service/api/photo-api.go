@@ -9,12 +9,18 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/database"
 	"github.com/julienschmidt/httprouter"
 )
+
+type PhotoUpload struct {
+	Content string `json:"content"`
+	Owner   string `json:"username_owner"`
+}
 
 func (rt *_router) uploadPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Leggi il corpo della richiesta
@@ -27,7 +33,8 @@ func (rt *_router) uploadPhoto(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	// Decodifica il corpo JSON
-	var requestBody Photo
+	var requestBody PhotoUpload
+
 	if err := json.Unmarshal(body, &requestBody); err != nil {
 		response := Response{ErrorMessage: "Errore durante la decodifica del corpo JSON"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
@@ -171,7 +178,7 @@ func (rt *_router) likePhoto(w http.ResponseWriter, r *http.Request, ps httprout
 
 func (rt *_router) commentPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Decodifica il corpo JSON della richiesta in una struttura
-	var requestBody Comment
+	var requestBody database.Comment
 	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
 		// Gestisci errori di decodifica JSON
 		response := Response{ErrorMessage: "Errore durante la decodifica del corpo JSON"}
@@ -336,6 +343,40 @@ func (rt *_router) deletePhoto(w http.ResponseWriter, r *http.Request, ps httpro
 	sendJSONResponse(w, response, http.StatusOK)
 }
 
+func (rt *_router) getPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	// Costruisci il percorso del file
+	photoID := ps.ByName("photo_id")
+	photoPath := filepath.Join("../../tmp/", photoID+".png")
+
+	// Verifica se il file esiste
+	if _, err := os.Stat(photoPath); os.IsNotExist(err) {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Leggi il file
+	file, err := os.ReadFile(photoPath)
+	if err != nil {
+		http.Error(w, "Unable to read file", http.StatusInternalServerError)
+		return
+	}
+
+	// Codifica il contenuto del file in base64
+	base64Encoding := base64.StdEncoding.EncodeToString(file)
+
+	// Crea la risposta
+	response := PhotoUpload{
+		Content: base64Encoding,
+		Owner:   "_",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Unable to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
 func saveImageLocally(imageData []byte, filePath string) error {
 	// Apri il file in modalità di scrittura
 	file, err := os.Create(filePath)
@@ -352,24 +393,4 @@ func saveImageLocally(imageData []byte, filePath string) error {
 
 	// fmt.Printf("Immagine salvata correttamente: %s\n", filePath)
 	return nil
-}
-
-func (rt *_router) getPhotos(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	// per ottenere le foto di un dato utente
-	var requestBody User
-	bytes, _ := io.ReadAll(r.Body)
-
-	if err := json.Unmarshal(bytes, &requestBody); err != nil {
-		response := Response{ErrorMessage: "Error occured while decoding JSON1"}
-		sendJSONResponse(w, response, http.StatusBadRequest)
-		return
-	}
-
-	username := requestBody.Content
-	if username == "" {
-		response := Response{ErrorMessage: "Error occured while decoding JSON2"}
-		sendJSONResponse(w, response, http.StatusBadRequest)
-		return
-	}
-
 }

@@ -481,13 +481,13 @@ func (db *appdbimpl) DeletePhoto(photoId int) error {
 	return nil
 }
 
-func (db *appdbimpl) GetPosts(uid int) ([]int, error) {
+func (db *appdbimpl) GetPosts(uid int) ([]Photo, error) {
 	// Verifica se l'utente esiste
 	valid, err := db.IdExists(uid)
 	if err != nil || !valid {
 		return nil, err
 	}
-
+	username_owner, _ := db.GetUsername(uid)
 	// Query per ottenere tutti i photoId associati all'uid
 	query := fmt.Sprintf("SELECT photoId FROM photo WHERE uid = %d", uid)
 
@@ -499,13 +499,17 @@ func (db *appdbimpl) GetPosts(uid int) ([]int, error) {
 	defer rows.Close()
 
 	// Crea una slice per memorizzare i risultati
-	var posts []int
+	var result []Photo
+	var tmp Photo
 	for rows.Next() {
 		var photoId int
 		if err := rows.Scan(&photoId); err != nil {
 			return nil, err
 		}
-		posts = append(posts, photoId)
+		comm, _ := db.getComments(photoId)
+		likes, _ := db.getLikes(photoId)
+		tmp = Photo{ID: photoId, Owner: username_owner, Comments: comm, Likes: likes}
+		result = append(result, tmp)
 	}
 
 	// Verifica errori di iterazione
@@ -513,7 +517,75 @@ func (db *appdbimpl) GetPosts(uid int) ([]int, error) {
 		return nil, err
 	}
 
-	return posts, nil
+	return result, nil
+}
+
+func (db *appdbimpl) getComments(photoId int) ([]Comment, error) {
+	query := fmt.Sprintf("SELECT uid, commentText FROM comment WHERE photoId = %d", photoId)
+	var username string
+	// Esegui la query
+	rows, err := db.c.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Crea una slice per memorizzare i risultati
+	var result []Comment
+	var tmp_comm Comment
+	for rows.Next() {
+
+		var tmp_uid int
+		var tmp_commentText string
+
+		if err := rows.Scan(&tmp_uid, &tmp_commentText); err != nil {
+			return nil, err
+		}
+		username, _ = db.GetUsername(tmp_uid)
+		tmp_comm = Comment{
+			Owner:   username,
+			Content: tmp_commentText,
+		}
+		result = append(result, tmp_comm)
+	}
+
+	// Verifica errori di iterazione
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+
+}
+
+func (db *appdbimpl) getLikes(photoId int) ([]string, error) {
+	query := fmt.Sprintf("SELECT uid FROM like WHERE likedPhotoId = %d", photoId)
+	var username string
+
+	rows, err := db.c.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []string
+	for rows.Next() {
+
+		var tmp_uid int
+
+		if err := rows.Scan(&tmp_uid); err != nil {
+			return nil, err
+		}
+		username, _ = db.GetUsername(tmp_uid)
+		result = append(result, username)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+
 }
 
 func (db *appdbimpl) GetStream(uid int) ([]int, error) {

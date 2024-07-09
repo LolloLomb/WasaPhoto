@@ -34,7 +34,7 @@
                     const base64String = reader.result.split(',')[1]; 
                     const payload = {
                         username_owner: localStorage.getItem('username'),
-                        photo_data: base64String
+                        content: base64String
                     };
 
                     let response = await this.$axios.post("/photo", payload, {

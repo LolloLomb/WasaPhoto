@@ -21,18 +21,6 @@ type User struct {
 	Content string `json:"username"`
 }
 
-type Photo struct {
-	Content  string    `json:"photo_data"`
-	Owner    string    `json:"username_owner"`
-	Comments []Comment `json:"comments"`
-	Likes    []int     `json:"likes"`
-}
-
-type Comment struct {
-	Content string `json:"comment_content"`
-	Owner   string `json:"username_owner"`
-}
-
 /*
 type UserToken struct {
 	Username string `json:"username"`
@@ -45,7 +33,7 @@ type Profile struct {
 	Id        int                  `json:"id"`
 	Following []database.UserTuple `json:"following"`
 	Followers []database.UserTuple `json:"followers"`
-	Posts     []Photo              `json:"posts"`
+	Posts     []database.Photo     `json:"posts"`
 }
 
 type NewUsername struct {
@@ -432,10 +420,10 @@ func (rt *_router) getUserProfile(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	var posts []Photo
+	var posts []database.Photo
 
-	// DA RISCRIVERE
-	//posts, err := rt.db.GetPosts(uid)
+	// posts deve essere già pronto e assemblato con tutti i dati tranne il base64
+	posts, _ = rt.db.GetPosts(uid)
 
 	profile := Profile{
 		Username:  username,

@@ -6,6 +6,7 @@ import axios from './services/axios.js';
 import ErrorMsg from './components/ErrorMsg.vue'
 import Navbar from './components/Navbar.vue'
 import LoadingSpinner from './components/LoadingSpinner.vue'
+import Photo from './components/Photo.vue'
 // importare tutti i componenti nuovi
 
 
@@ -17,5 +18,6 @@ app.config.globalProperties.$axios = axios;
 app.component("ErrorMsg", ErrorMsg);
 app.component("Navbar", Navbar);
 app.component("LoadingSpinner", LoadingSpinner);
+app.component('Photo', Photo)
 app.use(router)
 app.mount('#app')

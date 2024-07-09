@@ -13,7 +13,6 @@ export default {
 			try {
 				let response = await this.$axios.post("/session", {username: this.username.trim()});
 				let token = response.data.success.split('ID: ')[1];
-
 				localStorage.setItem('username', this.username);
 				localStorage.setItem('token', token);
 				localStorage.setItem('remember', this.remember);

@@ -8,7 +8,7 @@ export default {
             posts_amount: 0,
             followers: [],
             following: [],
-            photos: [],
+            posts: [],
             currentBanned: false,
             token: null,
             banStatus: false,
@@ -116,6 +116,9 @@ export default {
             }
             this.banStatus = !this.banStatus
             this.loadInfo()
+        },
+        sameUser() {
+            return this.username == localStorage.getItem('username')
         }
 	},
 
@@ -213,10 +216,20 @@ export default {
         </div>
     </div>
     <div class="row">
-            <div class="col">
-                
-            </div>
+    <div class="col d-flex justify-content-center align-items-center" v-if="!banStatus && posts_amount > 0">
+        <Photo v-for="(photo, index) in posts"
+            :key="index" 
+            :owner="this.username" 
+            :photo_id="photo.ID" 
+            :comments="photo.comments" 
+            :likes="photo.like_username"
+            :isOwner="sameUser()"/>
     </div>
+    <div v-else class="mt-5 ">
+        <h2 class="d-flex justify-content-center" style="color: white;">No posts yet</h2>
+    </div>
+</div>
+
 
     <div>
         
@@ -256,7 +269,7 @@ export default {
   border-radius: 6px;
   border: none;
   color: #fff;
-  background: linear-gradient(180deg, #d1ad48 0%, #d1a837 100%);
+  background: rgb(52, 119, 141);
    background-origin: border-box;
   box-shadow: 0px 0.5px 1.5px rgba(54, 122, 246, 0.25), inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2);
   user-select: none;

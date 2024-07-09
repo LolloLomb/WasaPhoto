@@ -56,7 +56,7 @@ type AppDatabase interface {
 	UnlikePhoto(uid int, photoId int) error
 	CommentPhoto(uid int, photoId int, text string) error
 	UncommentPhoto(photoId int, commentId int) error
-	GetPosts(uid int) ([]int, error)
+	GetPosts(uid int) ([]Photo, error)
 	DeletePhoto(photoId int) error
 	GetStream(uid int) ([]int, error)
 	FollowExists(uid int, followedUid int) (bool, error)
@@ -70,6 +70,18 @@ type AppDatabase interface {
 type UserTuple struct {
 	Username string
 	Token    int
+}
+
+type Photo struct {
+	ID       int       `json:"ID"`
+	Owner    string    `json:"username_owner"`
+	Comments []Comment `json:"comments"`
+	Likes    []string  `json:"like_username"`
+}
+
+type Comment struct {
+	Content string `json:"comment_content"`
+	Owner   string `json:"username_owner"`
 }
 
 type appdbimpl struct {
