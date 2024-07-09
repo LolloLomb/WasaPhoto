@@ -122,7 +122,12 @@ export default {
         },
         sameUser() {
             return this.username == localStorage.getItem('username')
-        }
+        },
+        
+        removePhotoFromList(photo_id){
+			this.posts = this.posts.filter(item => item.ID !== photo_id)
+            this.loadInfo()
+		},
 	},
 
 	async mounted() {
@@ -226,7 +231,10 @@ export default {
                     :photo_id="photo.ID" 
                     :comments="photo.comments" 
                     :likes="photo.like_username"
-                    :isOwner="sameUser()"/>
+                    :isOwner="sameUser()"
+                    
+                    @removePhoto="removePhotoFromList"
+                    />
             </div>
         </div>
         <div v-else class="info mt-5">

@@ -3,6 +3,7 @@ export default {
     data(){
         return {
             photoPath: null,
+            UploadDate: null,
             liked: false,
             AllComments: [],
             AllLikes: [],
@@ -12,7 +13,7 @@ export default {
         }
     },
 
-    props: ['owner','likes','comments',"photo_id","isOwner"], 
+    props: ['owner','likes','comments',"photo_id","isOwner", "upload_date"], 
 
     methods: {
         async loadPhoto() {
@@ -74,7 +75,6 @@ export default {
                     comment_content: this.newComment,
                     username_owner: localStorage.getItem('username'),
                 });
-                console.log(response)
                 this.currentCommentId = response.data.success
                 this.AllComments.push({username_owner: localStorage.getItem('username'), comment_content: this.newComment, ID: this.currentCommentId});
                 this.newComment = ""; // Reset textarea
@@ -82,7 +82,17 @@ export default {
             } catch (error) {
                 console.error("Error submitting comment:", error);
             }
-        }
+        },
+
+        async removePhoto() {
+            try {
+                let response = await this.$axios.delete("/photo/" + this.photo_id)
+                this.$emit('removePhoto', this.photo_id)
+            }
+            catch(error) {
+                console.log(error)
+            }
+        },
     },
 
     async mounted(){
@@ -90,6 +100,10 @@ export default {
 		if (this.likes != null){
 			this.AllLikes = this.likes
 		}
+
+        if(this.upload_date != null){
+            this.UploadDate = this.upload_date
+        }
 
 		if (this.likes != null){
 			this.liked = this.AllLikes.some(obj => obj === localStorage.getItem('username'))
@@ -107,6 +121,7 @@ export default {
     <div v-if="isCommentsMode" class="popup-overlay" @click.self="commentModalOut">
         <div class="popup-content" style="width: 40%;">
             <span class="close-button" @click="commentModalOut">&times;</span>
+                <div style="word-wrap: break-word;">
                     <p v-for="(comment, index) in AllComments" :key="index" style="margin-top: 0.2rem; margin-left: 10px; font-size: 16px;">
                         <svg @click="deleteComment(comment)" v-if="isCommentOwner(comment)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi-trash" viewBox="0 0 16 16" style="margin-right: 8px;">
                             <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
@@ -114,6 +129,7 @@ export default {
                         </svg>
                         {{ comment.username_owner }} : {{ comment.comment_content}}
                     </p>
+                </div>
             <!-- Form to add new comment -->
             <form @submit.prevent="submitComment" style="text-align: center;">
                 <input type="text" class="inputComment" v-model="newComment" placeholder="Add a comment..." rows="1" cols="50" style="width: 100%;" spellcheck="false" minlength="1"/>
@@ -121,8 +137,17 @@ export default {
             </form>
         </div>
     </div>
-
     <div class="post-container">
+
+        <div v-if="!isOwner">
+            <div>
+                {{  }}
+            </div>
+            <div>
+                {{ UploadDate }}
+            </div>
+        </div>
+
         <div class="photo-container">
             <img :src="photoPath" alt="Photo" v-if="photoPath"/>
         </div>
@@ -130,6 +155,10 @@ export default {
            <div class="row mx-auto" style="text-align: center; width: 80%; margin-top: 10px;">
             <div class="col" style="text-align: center;">
                 <button class="commentsButton" @click="commentsModalIn">Comments
+                </button>
+            </div>
+            <div class="col" style="text-align: center;" v-if="isOwner">
+                <button class="removeButton" @click="removePhoto">Remove
                 </button>
             </div>
             <div class="col my-auto" v-if="!isOwner">
@@ -175,30 +204,6 @@ export default {
     font-size: 15px;;
     background: linear-gradient(180deg, #3d93ad 0%, #2a6679 100%);
     color:white;
-}
-
-.commentsButton {
-    margin: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 12px 30px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
-    border-radius: 6px;
-    border: none;
-    color: #fff;
-    background: linear-gradient(180deg, #3d93ad 0%, #2a6679 100%);
-    background-origin: border-box;
-    box-shadow: 0px 0.5px 1.5px rgba(54, 122, 246, 0.25), inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2);
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
-    display: block;
-}
-
-.commentsButton:hover {
-  box-shadow: inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2), 0px 0.5px 1.5px rgba(54, 122, 246, 0.25), 0px 0px 0px 3.5px rgba(58, 108, 217, 0.5);
-  outline: 0;
 }
 
 .close-button {
@@ -257,6 +262,30 @@ export default {
 }
 
 .commentsButton:hover {
+  box-shadow: inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2), 0px 0.5px 1.5px rgba(54, 122, 246, 0.25), 0px 0px 0px 3.5px rgba(58, 108, 217, 0.5);
+  outline: 0;
+}
+
+.removeButton{
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 30px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+    border-radius: 6px;
+    border: none;
+    color: #fff;
+    background: linear-gradient(180deg, #db1919 0%, #7c3333 100%);
+    background-origin: border-box;
+    box-shadow: 0px 0.5px 1.5px rgba(54, 122, 246, 0.25), inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    display: block;
+}
+
+.removeButton:hover {
   box-shadow: inset 0px 0.8px 0px -0.25px rgba(255, 255, 255, 0.2), 0px 0.5px 1.5px rgba(54, 122, 246, 0.25), 0px 0px 0px 3.5px rgba(58, 108, 217, 0.5);
   outline: 0;
 }

@@ -58,7 +58,7 @@ type AppDatabase interface {
 	UncommentPhoto(photoId int, commentId int) error
 	GetPosts(uid int) ([]Photo, error)
 	DeletePhoto(photoId int) error
-	GetStream(uid int) ([]int, error)
+	GetStream(uid int) ([]Photo, error)
 	FollowExists(uid int, followedUid int) (bool, error)
 	IsPhotoOwner(uid int, photoId int) (bool, error)
 	IsCommentOwner(uid int, commentId int) (bool, error)
@@ -73,10 +73,11 @@ type UserTuple struct {
 }
 
 type Photo struct {
-	ID       int       `json:"ID"`
-	Owner    string    `json:"username_owner"`
-	Comments []Comment `json:"comments"`
-	Likes    []string  `json:"like_username"`
+	ID         int       `json:"ID"`
+	Owner      string    `json:"username_owner"`
+	Comments   []Comment `json:"comments"`
+	Likes      []string  `json:"like_username"`
+	UploadDate string    `json:"upload_date"`
 }
 
 type Comment struct {

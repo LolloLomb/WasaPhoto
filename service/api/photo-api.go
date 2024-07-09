@@ -330,7 +330,7 @@ func (rt *_router) deletePhoto(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	auth := r.Header.Get("Authorization")
-	authId, _ := rt.db.GetId(auth)
+	authId, _ := strconv.Atoi(auth)
 
 	// devo vedere se authId e "uid" dell'owner nel db coincidono
 

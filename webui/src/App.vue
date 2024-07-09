@@ -8,6 +8,7 @@ export default {
 			logged: false,
 		}
 	},
+
 	methods:{
 		logout(newValue){
 			this.logged = newValue
@@ -40,12 +41,10 @@ export default {
 			<div class="col p-0">
 				<main >
 					<Navbar v-if="logged" 
-					@logoutNavbar="logout" 
-					@requestUpdateView="updateView"/>
+					@logoutNavbar="logout" />
 
 					<RouterView 
-					@updatedLoggedChild="updateLogged" 
-					@requestUpdateView="updateView"/>
+					@updatedLoggedChild="updateLogged"/>
 				</main>
 			</div>
 		</div>

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
 
 	// "log"
 	"net/http"
@@ -485,25 +484,15 @@ func (rt *_router) getMyStream(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	u, _ := strconv.Atoi(auth)
-	photosId, err := rt.db.GetStream(u)
+	photos, err := rt.db.GetStream(u)
 
 	if err != nil {
 		response := Response{ErrorMessage: "Errore server"}
 		sendJSONResponse(w, response, http.StatusInternalServerError)
 		return
 	}
-	// Creare una risposta JSON di successo con il messaggio di log
-	for _, id := range photosId {
-		// Costruisci il percorso del file
-		filename := fmt.Sprintf("%d.png", id)
-		filePath := filepath.Join("media/", filename)
 
-		// Servi il file usando http.ServeFile
-		response := Response{SuccessMessage: "Stream OK"}
-		sendJSONResponse(w, response, http.StatusOK)
-		http.ServeFile(w, r, filePath)
-		return
-	}
+	sendJSONResponse(w, photos, http.StatusOK)
 }
 
 func (rt *_router) getId(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {

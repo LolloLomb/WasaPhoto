@@ -5,6 +5,7 @@ export default {
 			errormsg: null,
 			loading: false,
 			some_data: null,
+			photos: [],
 		}
 	},
 	methods: {
@@ -19,6 +20,7 @@ export default {
 			} catch (e) {
 				this.errormsg = e.toString();
 			}
+			console.log(this.photos)
 			this.loading = false;
 		},
 	},
@@ -33,11 +35,18 @@ export default {
 
 <template>
 	<div>
-		<div
-			class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
-			<h1 class="h2">Homepage</h1>
-		</div>
-
+		<div class="row mx-auto" style="margin-top: 100px;">
+            <div class="col-md-4 d-flex justify-content-center" style="margin-bottom: 100px;" v-for="(photo, index) in photos" :key="index">
+                <Photo 
+                    :owner="photo.owner" 
+                    :photo_id="photo.ID" 
+                    :comments="photo.comments" 
+                    :likes="photo.like_username"
+					:upload_date="photo.upload_date"
+					:isOwner="false"
+                    />
+            </div>
+        </div>
 		<ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>
 	</div>
 </template>

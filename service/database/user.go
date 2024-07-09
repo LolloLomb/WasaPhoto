@@ -466,37 +466,17 @@ func (db *appdbimpl) DeletePhoto(photoId int) error {
 
 	// cancello commenti e like
 	query = "DELETE FROM comment WHERE photoId = ?;"
-	result, err = db.c.Exec(query, photoId)
+	_, err = db.c.Exec(query, photoId)
 
 	if err != nil {
 		return err
 	}
 
-	rowsAffected, err = result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		// Nessuna riga è stata eliminata, quindi l'entry non è stata trovata
-		return sql.ErrNoRows
-	}
-
-	query = "DELETE FROM like WHERE photoId = ?;"
-	result, err = db.c.Exec(query, photoId)
+	query = "DELETE FROM like WHERE likedPhotoId = ?;"
+	_, err = db.c.Exec(query, photoId)
 
 	if err != nil {
 		return err
-	}
-
-	rowsAffected, err = result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		// Nessuna riga è stata eliminata, quindi l'entry non è stata trovata
-		return sql.ErrNoRows
 	}
 
 	return nil
@@ -611,8 +591,9 @@ func (db *appdbimpl) getLikes(photoId int) ([]string, error) {
 
 }
 
-func (db *appdbimpl) GetStream(uid int) ([]int, error) {
+func (db *appdbimpl) GetStream(uid int) ([]Photo, error) {
 	orderedPhotos, err := db.getOrderedPhotos(uid)
+
 	if err != nil {
 		return nil, err
 	}
@@ -648,8 +629,8 @@ func (db *appdbimpl) IsCommentOwner(uid int, photoId int) (bool, error) {
 	return false, nil
 }
 
-func (db *appdbimpl) getOrderedPhotos(uid int) ([]int, error) {
-	query := `SELECT * FROM photo WHERE uid IN (SELECT followedUid FROM follow WHERE uid = ?) ORDER BY upload_date DESC`
+func (db *appdbimpl) getOrderedPhotos(uid int) ([]Photo, error) {
+	query := `SELECT photoId, upload_date, uid FROM photo WHERE uid IN (SELECT followedUid FROM follow WHERE uid = ?) ORDER BY upload_date DESC`
 
 	rows, err := db.c.Query(query, uid)
 	if err != nil {
@@ -657,15 +638,27 @@ func (db *appdbimpl) getOrderedPhotos(uid int) ([]int, error) {
 	}
 	defer rows.Close()
 
-	var orderedPhotos []int
+	var orderedPhotos []Photo
 
 	for rows.Next() {
-		var photo int
-		err := rows.Scan(&photo)
+		var photoId int
+		var ownerUid int
+		var upload_date time.Time
+		err := rows.Scan(&photoId, &upload_date, &ownerUid)
+
 		if err != nil {
 			return nil, err
 		}
-		orderedPhotos = append(orderedPhotos, photo)
+
+		dateStr := upload_date.Format("2006-01-02 15:04:05")
+
+		owner_username, _ := db.GetUsername(ownerUid)
+
+		comm, _ := db.getComments(photoId)
+		likes, _ := db.getLikes(photoId)
+		tmp := Photo{ID: photoId, Owner: owner_username, Comments: comm, Likes: likes, UploadDate: dateStr}
+
+		orderedPhotos = append(orderedPhotos, tmp)
 	}
 
 	if err := rows.Err(); err != nil {
