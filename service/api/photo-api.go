@@ -123,18 +123,22 @@ func (rt *_router) likePhoto(w http.ResponseWriter, r *http.Request, ps httprout
 		return
 	}
 
-	likedUid, err := rt.db.GetId(requestBody.Content)
 	// vedere se l'utente è autorizzato e poi 2 se il suo username esiste
 	auth := r.Header.Get("Authorization")
-	if auth != requestBody.Content || auth == "" {
+
+	if auth == "" {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)
 		return
 	}
 
+	authUid, _ := strconv.Atoi(auth)
+
 	// 2
+	_, err := rt.db.GetUsername(authUid)
+
 	if err != nil {
-		response := Response{ErrorMessage: "Username non valido"}
+		response := Response{ErrorMessage: "Nessun usernamea associato a questo token"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
@@ -148,14 +152,14 @@ func (rt *_router) likePhoto(w http.ResponseWriter, r *http.Request, ps httprout
 	}
 
 	// ora devo vedere se sono il proprietario
-	flag, _ := rt.db.IsPhotoOwner(likedUid, photoId)
+	flag, _ := rt.db.IsPhotoOwner(authUid, photoId)
 	if flag {
 		response := Response{ErrorMessage: "Non puoi mettere like ad una tua foto"}
 		sendJSONResponse(w, response, http.StatusBadRequest)
 		return
 	}
 
-	err = rt.db.LikePhoto(likedUid, photoId)
+	err = rt.db.LikePhoto(authUid, photoId)
 
 	if errors.Is(err, database.ErrAlreadyLiked) {
 		response := Response{ErrorMessage: "Hai già messo like alla foto"}
@@ -232,7 +236,7 @@ func (rt *_router) unlikePhoto(w http.ResponseWriter, r *http.Request, ps httpro
 
 	auth := r.Header.Get("Authorization")
 	// devo vedere se coincide con l'uid
-	authUid, _ := rt.db.GetId(auth)
+	authUid, _ := strconv.Atoi(auth)
 	if authUid != uid || auth == "" {
 		response := Response{ErrorMessage: ErrForbidden.Error()}
 		sendJSONResponse(w, response, http.StatusForbidden)

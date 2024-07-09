@@ -54,7 +54,8 @@ export default {
 
 			}catch(e){
 				this.currentBanned = true
-			}
+                this.userExists = false
+            }
         },
         
         changeNameModalIn() {
@@ -215,19 +216,20 @@ export default {
             <img src="../assets/sad_face.png" class="img-fluid" alt="Responsive image">
         </div>
     </div>
-    <div class="row">
-    <div class="col d-flex justify-content-center align-items-center" v-if="!banStatus && posts_amount > 0">
-        <Photo v-for="(photo, index) in posts"
-            :key="index" 
-            :owner="this.username" 
-            :photo_id="photo.ID" 
-            :comments="photo.comments" 
-            :likes="photo.like_username"
-            :isOwner="sameUser()"/>
-    </div>
-    <div v-else class="mt-5 ">
-        <h2 class="d-flex justify-content-center" style="color: white;">No posts yet</h2>
-    </div>
+    <div>
+        <div class="row mx-auto" style="margin-top: 100px;" v-if="!banStatus && posts_amount > 0 && userExists">
+            <div class="col-md-4 d-flex justify-content-center" style="margin-bottom: 100px;" v-for="(photo, index) in posts" :key="index">
+                <Photo 
+                    :owner="this.username" 
+                    :photo_id="photo.ID" 
+                    :comments="photo.comments" 
+                    :likes="photo.like_username"
+                    :isOwner="sameUser()"/>
+            </div>
+        </div>
+        <div v-else class="info mt-5">
+            <h2 class="d-flex justify-content-center" style="color: grey;" v-if="userExists">No posts yet</h2>
+        </div>
 </div>
 
 
@@ -237,6 +239,20 @@ export default {
 </template>
 
 <style scoped>
+
+.row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.col-md-4 {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.mb-4 {
+    margin-bottom: 1.5rem;
+}
 
 [v-cloak] {
 	display: none

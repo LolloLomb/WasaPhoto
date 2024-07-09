@@ -61,6 +61,10 @@ export default{
 .navbar {
   justify-content: space-around; /* Distribuzione uniforme degli elementi */
   width: 40%;
+  background-color: white;
+  border: 5px solid #abd3da;
+  border-top-left-radius: 40px;
+  border-top-right-radius: 40px;
 }
 
 .iconNormal:hover, .iconOut:hover,
