@@ -11,7 +11,7 @@ export default{
     },
     getUsername(){
       return localStorage.getItem('username')
-    }
+    },
   },
 }
 </script>

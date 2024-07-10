@@ -14,6 +14,9 @@ export default {
 			this.logged = newValue
 			this.$router.replace("/login")
 		},
+		refresh(){
+			location.reload()
+		},
 		updateLogged(newLogged){
 			this.logged = newLogged
 		},
@@ -28,8 +31,9 @@ export default {
 	},
 	
 	mounted(){
-		if (localStorage.getItem('token')) {
+		if (localStorage.getItem('remember') == false) {
 			this.logged = true
+			console.log(this.logged)
 		}
 	},
 
@@ -46,7 +50,8 @@ export default {
 				<main >
 					<Navbar v-if="logged" 
 					@logoutNavbar="logout" />
-					<Banner v-if="logged" />
+					<Banner v-if="logged" 
+					@refresh="refresh"/>
 					<RouterView 
 					@updatedLoggedChild="updateLogged"/>
 				</main>
