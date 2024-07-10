@@ -38,13 +38,12 @@ export default {
 		<div class="row mx-auto" style="margin-top: 100px;">
             <div class="col-md-4 d-flex justify-content-center" style="margin-bottom: 100px;" v-for="(photo, index) in photos" :key="index">
                 <Photo 
-                    :owner="photo.owner" 
+                    :owner="photo.username_owner" 
                     :photo_id="photo.ID" 
                     :comments="photo.comments" 
                     :likes="photo.like_username"
 					:upload_date="photo.upload_date"
-					:isOwner="false"
-                    />
+					:isOwner="false"/>
             </div>
         </div>
 		<ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>

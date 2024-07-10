@@ -17,6 +17,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+var MEDIAPATH string = "/tmp/WasaMedia/"
+
 type PhotoUpload struct {
 	Content string `json:"content"`
 	Owner   string `json:"username_owner"`
@@ -92,14 +94,14 @@ func (rt *_router) uploadPhoto(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	// Verifica se la cartella "tmp" esiste
-	_, err = os.Stat("../../tmp/")
+	_, err = os.Stat(MEDIAPATH)
 
 	if os.IsNotExist(err) {
 		// Se la cartella non esiste, creala
-		_ = os.Mkdir("../../tmp/", 0755) // 0755 è il permesso di default per la cartella
+		_ = os.Mkdir(MEDIAPATH, 0755) // 0755 è il permesso di default per la cartella
 	}
 
-	path := "../../tmp/" + strconv.Itoa(photoId) + ".png"
+	path := MEDIAPATH + strconv.Itoa(photoId) + ".png"
 	err = saveImageLocally(imageData, path)
 
 	if err != nil {
@@ -357,7 +359,7 @@ func (rt *_router) deletePhoto(w http.ResponseWriter, r *http.Request, ps httpro
 func (rt *_router) getPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Costruisci il percorso del file
 	photoID := ps.ByName("photo_id")
-	photoPath := filepath.Join("../../tmp/", photoID+".png")
+	photoPath := filepath.Join(MEDIAPATH, photoID+".png")
 
 	// Verifica se il file esiste
 	if _, err := os.Stat(photoPath); os.IsNotExist(err) {
@@ -378,7 +380,6 @@ func (rt *_router) getPhoto(w http.ResponseWriter, r *http.Request, ps httproute
 	// Crea la risposta
 	response := PhotoUpload{
 		Content: base64Encoding,
-		Owner:   "_",
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -490,7 +490,7 @@ func (db *appdbimpl) GetPosts(uid int) ([]Photo, error) {
 	}
 	username_owner, _ := db.GetUsername(uid)
 	// Query per ottenere tutti i photoId associati all'uid
-	query := fmt.Sprintf("SELECT photoId FROM photo WHERE uid = %d", uid)
+	query := fmt.Sprintf("SELECT photoId, upload_date FROM photo WHERE uid = %d", uid)
 
 	// Esegui la query
 	rows, err := db.c.Query(query)
@@ -501,18 +501,22 @@ func (db *appdbimpl) GetPosts(uid int) ([]Photo, error) {
 
 	// Crea una slice per memorizzare i risultati
 	var result []Photo
-	var tmp Photo
 	for rows.Next() {
 		var photoId int
-		if err := rows.Scan(&photoId); err != nil {
+		var upload_date time.Time
+		err := rows.Scan(&photoId, &upload_date)
+
+		if err != nil {
 			return nil, err
 		}
+
+		dateStr := upload_date.Format("2006-01-02 15:04:05")
+
 		comm, _ := db.getComments(photoId)
 		likes, _ := db.getLikes(photoId)
-		tmp = Photo{ID: photoId, Owner: username_owner, Comments: comm, Likes: likes}
+		tmp := Photo{ID: photoId, Owner: username_owner, Comments: comm, Likes: likes, UploadDate: dateStr}
 		result = append(result, tmp)
 	}
-
 	// Verifica errori di iterazione
 	if err := rows.Err(); err != nil {
 		return nil, err

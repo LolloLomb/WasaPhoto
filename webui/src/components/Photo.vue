@@ -5,13 +5,17 @@ export default {
             photoPath: null,
             UploadDate: null,
             liked: false,
+            Owner: null,
             AllComments: [],
             AllLikes: [],
             isCommentsMode: false,
             newComment: "",
             currentCommentId: 0,
+            likesCount: 0,
         }
     },
+
+    emits: ['removePhoto', 'updatedLoggedChild'],
 
     props: ['owner','likes','comments',"photo_id","isOwner", "upload_date"], 
 
@@ -99,7 +103,12 @@ export default {
 		this.loadPhoto()
 		if (this.likes != null){
 			this.AllLikes = this.likes
+            this.likesCount = this.likes.length
 		}
+
+        if (this.owner != null){
+            this.Owner = this.owner
+        }
 
         if(this.upload_date != null){
             this.UploadDate = this.upload_date
@@ -112,6 +121,16 @@ export default {
 			this.AllComments = this.comments
 		}
 	},
+
+    computed: {
+        styleDate(){
+            return {
+                width: '50%',
+                textAlign: this.isOwner ? 'left' : 'right',
+                margin: '0 auto',
+            }
+        }
+    }
 }
 
 </script>
@@ -139,12 +158,17 @@ export default {
     </div>
     <div class="post-container">
 
-        <div v-if="!isOwner">
-            <div>
-                {{  }}
+        <div class="row mx-auto">
+            <div style="width:50%;text-align: left" v-if="!isOwner" class='infoName'>
+                {{ Owner }}
             </div>
-            <div>
+            
+            <div class="my-auto" style="width:50%; text-align: right;" v-bind:style="styleDate">
                 {{ UploadDate }}
+            </div>
+
+            <div v-if="isOwner" style="width:50%; text-align:right" class='infoName'>
+                {{ likesCount }} Likes
             </div>
         </div>
 
@@ -175,6 +199,14 @@ export default {
 </template>
 
 <style scoped>
+
+.infoName {
+    color: #3d93ad;
+    font-size: 20px;
+    border:2px solid rgb(197, 243, 255);
+    margin-bottom: 5px;
+    border-radius: 15px;
+}
 
 .inputComment {
     border: 2px solid #3d93ad;

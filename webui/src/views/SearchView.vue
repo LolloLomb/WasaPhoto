@@ -7,6 +7,8 @@ export default {
         }
     },
 
+    emits: ['updatedLoggedChild'],
+
     methods: {
         async search() {
             this.search_username = this.search_username.toLowerCase();
