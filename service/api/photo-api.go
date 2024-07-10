@@ -153,13 +153,14 @@ func (rt *_router) likePhoto(w http.ResponseWriter, r *http.Request, ps httprout
 		return
 	}
 
-	// ora devo vedere se sono il proprietario
-	flag, _ := rt.db.IsPhotoOwner(authUid, photoId)
-	if flag {
-		response := Response{ErrorMessage: "Non puoi mettere like ad una tua foto"}
-		sendJSONResponse(w, response, http.StatusBadRequest)
-		return
-	}
+	/*
+		flag, _ := rt.db.IsPhotoOwner(authUid, photoId)
+		if flag {
+			response := Response{ErrorMessage: "Non puoi mettere like ad una tua foto"}
+			sendJSONResponse(w, response, http.StatusBadRequest)
+			return
+		}
+	*/
 
 	err = rt.db.LikePhoto(authUid, photoId)
 

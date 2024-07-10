@@ -52,7 +52,6 @@ export default {
 				this.followingCount = response.data.following != null ? response.data.following.length : 0
 				this.posts_amount = response.data.posts != null ? response.data.posts.length : 0
                 this.posts = response.data.posts != null ? response.data.posts : []
-                console.log(response)
                 if (response.status == 206){
                     this.banStatus = true
                     this.posts_amount = 0
@@ -130,7 +129,6 @@ export default {
         
         removePhotoFromList(photo_id){
 			this.posts = this.posts.filter(item => item.ID !== photo_id)
-            console.log(photo_id)
             this.loadInfo()
 		},
 	},

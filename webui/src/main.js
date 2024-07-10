@@ -14,6 +14,7 @@ import './assets/dashboard.css'
 import './assets/main.css'
 
 const app = createApp(App)
+
 app.config.globalProperties.$axios = axios;
 app.component("ErrorMsg", ErrorMsg);
 app.component("Navbar", Navbar);

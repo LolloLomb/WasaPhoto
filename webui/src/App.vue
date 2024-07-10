@@ -19,19 +19,23 @@ export default {
 		},
 		updateView(newRoute){
 			this.$router.replace(newRoute)
+		},
+		leaving(){
+			localStorage.clear()
+			this.logged = false
+			this.$router.replace('login')
 		}
 	},
 	
 	mounted(){
-		if (localStorage.getItem('remember') == 'false') {
-			this.logged = false
-			this.$router.replace('/login')
-		}
-		
-		if (localStorage.getItem('remember') == 'true') {
+		if (localStorage.getItem('token')) {
 			this.logged = true
 		}
 	},
+
+	ready(){
+		window.onbeforeunload = this.leaving
+	}
 }
 </script>
 

@@ -20,7 +20,6 @@ export default {
 			} catch (e) {
 				this.errormsg = e.toString();
 			}
-			console.log(this.photos)
 			this.loading = false;
 		},
 	},
