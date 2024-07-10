@@ -227,7 +227,7 @@ export default {
         </div>
     </div>
     <div>
-        <div class="row mx-auto" style="margin-top: 100px;" v-if="!banStatus && posts_amount > 0 && userExists">
+        <div class="row mx-auto" style="margin-top: 100px; width:90%" v-if="!banStatus && posts_amount > 0 && userExists">
             <div class="col-md-4 d-flex justify-content-center" style="margin-bottom: 100px;" v-for="(photo, index) in posts" :key="index">
                 <Photo 
                     :owner="this.username" 

@@ -46,7 +46,7 @@ export default {
 				<main >
 					<Navbar v-if="logged" 
 					@logoutNavbar="logout" />
-
+					<Banner v-if="logged" />
 					<RouterView 
 					@updatedLoggedChild="updateLogged"/>
 				</main>

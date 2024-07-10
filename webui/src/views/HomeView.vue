@@ -34,7 +34,7 @@ export default {
 
 <template>
 	<div>
-		<div class="row mx-auto" style="margin-top: 100px;">
+		<div class="row mx-auto" style="margin-top: 100px; width: 90%;">
             <div class="col-md-4 d-flex justify-content-center" style="margin-bottom: 100px;" v-for="(photo, index) in photos" :key="index">
                 <Photo 
                     :owner="photo.username_owner" 
