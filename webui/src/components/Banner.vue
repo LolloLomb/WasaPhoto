@@ -1,6 +1,6 @@
 <template>
     <nav class="banner fixed-top" style="text-align: center">
-        <a href="#home">
+        <a>
             <img src="../assets/Wasa_Logo.png" class="logo" @click="refresh">
         </a>
     </nav>
@@ -14,7 +14,7 @@ export default{
   },
   methods:{
     refresh(){
-        this.$emit("refresh")
+      this.$router.replace('/home')
     },
   },
 }

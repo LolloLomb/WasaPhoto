@@ -31,9 +31,8 @@ export default {
 	},
 	
 	mounted(){
-		if (localStorage.getItem('remember') == false) {
+		if (localStorage.getItem('remember') == 'false') {
 			this.logged = true
-			console.log(this.logged)
 		}
 	},
 

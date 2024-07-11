@@ -34,6 +34,7 @@ export default {
                 try{
                     let response = await this.$axios.post("/photo/" + this.photo_id + "/likes", {username:localStorage.getItem('username')})
                     this.liked = !this.liked
+                    this.likesCount += 1
                 }
                 catch (error) {
                     console.error(error)
@@ -43,6 +44,7 @@ export default {
                 try{
                     let response = await this.$axios.delete("/photo/" + this.photo_id + "/likes/" + localStorage.getItem("token"))
                     this.liked = !this.liked
+                    this.likesCount -=1
                 }
                 catch(error) {
                     console.error(error)

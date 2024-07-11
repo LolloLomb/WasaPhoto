@@ -28,6 +28,7 @@ export default {
 			this.$router.replace('/login')
 		}
 		this.streamLoader()
+		this.$emit("refresh")
 	}
 }
 </script>
